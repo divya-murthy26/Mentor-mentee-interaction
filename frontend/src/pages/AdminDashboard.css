@@ -1,0 +1,73 @@
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 28px;
+}
+.page-header .section-header { margin-bottom: 0; }
+
+.charts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 0;
+}
+.chart-card h3 { font-size: 16px; font-weight: 700; margin-bottom: 20px; color: var(--text); }
+
+.form-card { margin-bottom: 24px; }
+.form-card h3 { font-size: 16px; font-weight: 700; margin-bottom: 20px; }
+.form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.form-actions { display: flex; gap: 12px; margin-top: 8px; }
+
+.cell-name { display: flex; align-items: center; gap: 12px; }
+.cell-av {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  background: var(--primary);
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.cell-actions { display: flex; gap: 8px; align-items: center; }
+.btn-edit {
+  background: var(--primary-light);
+  color: var(--primary);
+  border: none;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-edit:hover { background: var(--primary); color: #fff; }
+
+/* Assign */
+.assign-grid { display: grid; grid-template-columns: 380px 1fr; gap: 24px; }
+.assign-grid h3 { font-size: 16px; font-weight: 700; }
+.assign-list { display: flex; flex-direction: column; gap: 14px; }
+.assign-item {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px;
+  background: var(--bg);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+.assign-avatars { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.assign-arrow { font-size: 16px; color: var(--text-muted); }
+.assign-info { flex: 1; font-size: 14px; }
+
+/* Feedback */
+.feedback-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+.feedback-card { padding: 24px; }
+.feedback-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
+.stars { font-size: 16px; }
+.feedback-comment { font-size: 14px; color: var(--text-muted); line-height: 1.7; font-style: italic; border-left: 3px solid var(--primary); padding-left: 14px; }
+
+@media (max-width: 900px) {
+  .charts-grid { grid-template-columns: 1fr; }
+  .assign-grid { grid-template-columns: 1fr; }
+  .form-row-2 { grid-template-columns: 1fr; }
+}

@@ -1,0 +1,101 @@
+.mentor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 24px; }
+
+.request-mini {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px;
+  background: var(--bg);
+  border-radius: 12px;
+  margin-bottom: 12px;
+  border: 1px solid var(--border);
+}
+.req-info { flex: 1; }
+.req-info strong { display: block; font-size: 14px; font-weight: 700; }
+.req-info span { font-size: 12px; color: var(--text-muted); }
+.req-actions { display: flex; gap: 8px; }
+
+.schedule-item {
+  display: flex; align-items: center; gap: 16px;
+  padding: 14px;
+  background: var(--bg);
+  border-radius: 12px;
+  margin-bottom: 12px;
+  border: 1px solid var(--border);
+}
+.schedule-date {
+  width: 50px; height: 50px;
+  border-radius: 12px;
+  background: var(--primary);
+  color: #fff;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.sched-day { font-size: 18px; font-weight: 800; line-height: 1; }
+.sched-mon { font-size: 10px; font-weight: 600; opacity: 0.8; }
+.schedule-info { flex: 1; }
+.schedule-info strong { display: block; font-size: 14px; font-weight: 700; }
+.schedule-info span { font-size: 12px; color: var(--text-muted); }
+
+/* Requests */
+.requests-list { display: flex; flex-direction: column; gap: 20px; }
+.request-card { display: flex; flex-direction: column; gap: 14px; }
+.request-top { display: flex; justify-content: space-between; align-items: center; }
+.request-details { display: flex; gap: 20px; }
+.req-detail { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--text-muted); }
+.request-message {
+  background: var(--bg);
+  border-radius: 10px;
+  padding: 14px;
+  border-left: 3px solid var(--primary);
+}
+.request-message p { font-size: 14px; color: var(--text-muted); font-style: italic; }
+.request-footer { display: flex; gap: 12px; padding-top: 4px; }
+
+/* My Mentees */
+.mentees-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 20px; }
+.mentee-card { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 28px 24px; transition: all 0.2s; }
+.mentee-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); }
+.mentee-av {
+  width: 64px; height: 64px;
+  border-radius: 20px;
+  background: var(--green);
+  color: #fff;
+  font-size: 26px;
+  font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 16px rgba(46,125,50,0.3);
+}
+.mentee-card h3 { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+.mentee-stats { display: flex; gap: 20px; margin-top: 16px; }
+.mentee-stats div { display: flex; flex-direction: column; gap: 2px; }
+.mentee-stats strong { font-size: 18px; font-weight: 800; color: var(--text); }
+.mentee-stats span { font-size: 11px; color: var(--text-muted); }
+
+/* Profile */
+.profile-layout { display: flex; gap: 24px; align-items: flex-start; }
+.profile-card { width: 280px; flex-shrink: 0; text-align: center; padding: 36px 24px; }
+.profile-avatar {
+  width: 90px; height: 90px;
+  border-radius: 24px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 36px;
+  font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 18px;
+  box-shadow: 0 6px 24px rgba(30,136,200,0.35);
+}
+.profile-card h2 { font-size: 20px; font-weight: 800; margin-bottom: 6px; }
+.profile-badges { display: flex; gap: 8px; justify-content: center; margin: 16px 0; flex-wrap: wrap; }
+.profile-meta { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 20px; border-top: 1px solid var(--border); padding-top: 20px; }
+.profile-meta div { display: flex; flex-direction: column; gap: 4px; }
+.profile-meta strong { font-size: 20px; font-weight: 800; color: var(--primary); }
+.profile-meta span { font-size: 11px; color: var(--text-muted); }
+.form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+@media(max-width:900px){
+  .mentor-grid{grid-template-columns:1fr;}
+  .profile-layout{flex-direction:column;}
+  .profile-card{width:100%;}
+  .form-row-2{grid-template-columns:1fr;}
+}
