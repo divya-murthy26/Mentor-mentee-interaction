@@ -15,20 +15,23 @@ const app = express();
 
 /* ---------------- Middleware ---------------- */
 
-app.use(
-  cors({
-    origin: [
-      "http://localhost:3000",
-      "https://mentor-mentee-interaction.vercel.app",
-      "https://mentor-mentee-interaction-6spiqvd47-divya-dns-projects.vercel.app"
-    ],
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
 
-    credentials: true
-  })
-);
+    // Allow localhost, the main vercel app, and any Vercel preview URLs for this project
+    if (origin === "http://localhost:3000" || origin.includes("mentor-mentee-interaction") && origin.includes(".vercel.app")) {
+      return callback(null, true);
+    }
+    return callback(new Error('Not allowed by CORS'));
+  },
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
 
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
