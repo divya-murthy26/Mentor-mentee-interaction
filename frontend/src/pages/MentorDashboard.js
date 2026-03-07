@@ -15,7 +15,6 @@ const MentorDashboard = () => {
   const [interactions, setInteractions] = useState([]);
   const [feedback, setFeedback] = useState([]);
   const [stats, setStats] = useState(null);
-  const [profile, setProfile] = useState(null);
   const [profileForm, setProfileForm] = useState({ name: '', email: '', expertise: '', profileDescription: '' });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -59,7 +58,7 @@ const MentorDashboard = () => {
 
   const pending   = interactions.filter(i => i.status === 'pending');
   const upcoming  = interactions.filter(i => i.status === 'accepted');
-  const completed = interactions.filter(i => i.status === 'completed');
+
   const initials  = n => n ? n.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase() : 'M';
 
   const tabs = [
