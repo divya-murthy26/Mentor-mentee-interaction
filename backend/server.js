@@ -22,6 +22,9 @@ app.use(
       "https://mentor-mentee-interaction.vercel.app",
       "https://mentor-mentee-interaction-6spiqvd47-divya-dns-projects.vercel.app"
     ],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+
     credentials: true
   })
 );
