@@ -1,14 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const menteeController = require('../controllers/menteeController');
-const auth = require('../middleware/authMiddleware');
-const checkRole = require('../middleware/roleMiddleware');
+const { getMentees, createMentee, assignMentor, getMenteeByUserId } = require('../controllers/menteeController');
+const { protect, authorize } = require('../middlewares/auth');
 
-// All routes here require Auth and Mentee role
-router.use(auth, checkRole(['mentee']));
-
-router.post('/schedule', menteeController.scheduleMeeting);
-router.get('/my-meetings', menteeController.getMyMeetings);
-router.post('/feedback', menteeController.submitFeedback);
+router.get('/', protect, authorize('admin', 'mentor'), getMentees);
+router.post('/', protect, authorize('admin'), createMentee);
+router.patch('/:id/assign', protect, authorize('admin'), assignMentor);
+router.get('/me', protect, authorize('mentee'), getMenteeByUserId);
 
 module.exports = router;

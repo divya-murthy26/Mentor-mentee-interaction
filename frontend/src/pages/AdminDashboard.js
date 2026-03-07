@@ -1,369 +1,408 @@
-import React, { useState } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
-import DashboardLayout from '../components/DashboardLayout';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, CartesianGrid } from 'recharts';
-import './AdminDashboard.css';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { mentorService, menteeService, feedbackService, interactionService, statsService } from '../services/apiService';
+import api from '../services/api';
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, LineChart, Line
+} from 'recharts';
+import './Dashboard.css';
 
-const navItems = [
-  { path: '/admin/overview', label: 'Overview' },
-  { path: '/admin/mentors', label: 'Manage Mentors' },
-  { path: '/admin/mentees', label: 'Manage Mentees' },
-  { path: '/admin/assign', label: 'Assign Pairs' },
-  { path: '/admin/sessions', label: 'Sessions' },
-  { path: '/admin/feedback', label: 'Feedback' },
-];
+const PIE_COLORS = ['#f59e0b','#0F4C5C','#10b981','#ef4444'];
 
-const sessionData = [
-  { month: 'Jan', sessions: 120 }, { month: 'Feb', sessions: 180 },
-  { month: 'Mar', sessions: 220 }, { month: 'Apr', sessions: 195 },
-  { month: 'May', sessions: 280 }, { month: 'Jun', sessions: 310 },
-];
-const enrollData = [
-  { month: 'Jan', mentors: 40, mentees: 80 }, { month: 'Feb', mentors: 55, mentees: 110 },
-  { month: 'Mar', mentors: 70, mentees: 145 }, { month: 'Apr', mentors: 85, mentees: 180 },
-  { month: 'May', mentors: 100, mentees: 220 }, { month: 'Jun', mentors: 120, mentees: 260 },
-];
+const AdminDashboard = () => {
+  const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState('overview');
+  const [mentors, setMentors] = useState([]);
+  const [mentees, setMentees] = useState([]);
+  const [feedback, setFeedback] = useState([]);
+  const [interactions, setInteractions] = useState([]);
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [showModal, setShowModal] = useState(null);
+  const [mentorForm, setMentorForm] = useState({ name: '', email: '', password: '', expertise: '' });
+  const [menteeForm, setMenteeForm] = useState({ name: '', email: '', password: '', goal: '' });
+  const [assignForm, setAssignForm] = useState({ menteeId: '', mentorId: '' });
 
-const mockMentors = [
-  { id: 1, name: 'Dr. Priya Sharma', email: 'priya@ex.com', company: 'Google', domain: 'Data Science', mentees: 4, status: 'Active' },
-  { id: 2, name: 'Mr. Rajan Patel', email: 'rajan@ex.com', company: 'Microsoft', domain: 'Cloud Computing', mentees: 3, status: 'Active' },
-  { id: 3, name: 'Ms. Anita Singh', email: 'anita@ex.com', company: 'Amazon', domain: 'Web Dev', mentees: 5, status: 'Active' },
-  { id: 4, name: 'Mr. Vikram Nair', email: 'vikram@ex.com', company: 'StartupInc', domain: 'Cybersecurity', mentees: 2, status: 'Inactive' },
-];
+  useEffect(() => { fetchData(); }, []);
 
-const mockMentees = [
-  { id: 1, name: 'Aarav Sharma', email: 'aarav@ex.com', branch: 'CSE', batch: '2025', mentor: 'Dr. Priya', status: 'Active' },
-  { id: 2, name: 'Riya Patel', email: 'riya@ex.com', branch: 'ISE', batch: '2026', mentor: 'Mr. Rajan', status: 'Active' },
-  { id: 3, name: 'Sneha Nair', email: 'sneha@ex.com', branch: 'ECE', batch: '2025', mentor: 'Ms. Anita', status: 'Active' },
-  { id: 4, name: 'Dev Kumar', email: 'dev@ex.com', branch: 'CSE', batch: '2027', mentor: 'Unassigned', status: 'Pending' },
-];
-
-const mockSessions = [
-  { id: 1, mentee: 'Aarav Sharma', mentor: 'Dr. Priya', date: '2024-06-10', time: '10:00 AM', subject: 'Math', status: 'Completed' },
-  { id: 2, mentee: 'Riya Patel', mentor: 'Mr. Rajan', date: '2024-06-11', time: '11:30 AM', subject: 'English', status: 'Upcoming' },
-  { id: 3, mentee: 'Sneha Nair', mentor: 'Ms. Anita', date: '2024-06-11', time: '2:00 PM', subject: 'Science', status: 'Upcoming' },
-  { id: 4, mentee: 'Aarav Sharma', mentor: 'Dr. Priya', date: '2024-06-12', time: '10:00 AM', subject: 'Math', status: 'Scheduled' },
-];
-
-const mockFeedback = [
-  { id: 1, mentee: 'Aarav Sharma', mentor: 'Dr. Priya', date: '2024-06-10', mode: 'Online', duration: '1.5', discussion: 'Discussed final year project ideas and tech stack selection.', outcome: 'Selected React and Node.js for the project.' },
-  { id: 2, mentee: 'Riya Patel', mentor: 'Mr. Rajan', date: '2024-06-08', mode: 'In-Person', duration: '1', discussion: 'Resume review and mock interview preparation.', outcome: 'Resume updated, scheduled mock interview.' },
-];
-
-// Overview
-function Overview() {
-  return (
-    <div className="fade-in">
-      <div className="stat-cards">
-        {[
-          { label: 'Total Mentees', value: '142', change: '+12% this month' },
-          { label: 'Total Mentors', value: '58', change: '+5% this month' },
-          { label: 'Sessions This Month', value: '310', change: '+18% vs last' },
-        ].map((s, i) => (
-          <div key={i} className="stat-card fade-in" style={{animationDelay: i*0.08+'s'}}>
-            <div className="value">{s.value}</div>
-            <div className="label">{s.label}</div>
-            <div className="change">{s.change}</div>
-          </div>
-        ))}
-      </div>
-
-      <div className="charts-grid" style={{gridTemplateColumns: '1fr'}}>
-        <div className="card chart-card">
-          <h3>Monthly Interactions</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <AreaChart data={sessionData}>
-              <defs>
-                <linearGradient id="sessGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#1e88c8" stopOpacity={0.2}/>
-                  <stop offset="95%" stopColor="#1e88c8" stopOpacity={0}/>
-                </linearGradient>
-              </defs>
-              <XAxis dataKey="month" tick={{fontSize:12}} />
-              <YAxis tick={{fontSize:12}} />
-              <Tooltip />
-              <Area type="monotone" dataKey="sessions" stroke="#1e88c8" fill="url(#sessGrad)" strokeWidth={2} />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      <div className="card" style={{marginTop: 24}}>
-        <div className="section-header"><h2>Recent Sessions</h2><p>Latest activity on the platform</p></div>
-        <table className="data-table">
-          <thead><tr><th>Mentee</th><th>Mentor</th><th>Date</th><th>Subject</th><th>Status</th></tr></thead>
-          <tbody>
-            {mockSessions.slice(0,4).map(s => (
-              <tr key={s.id}>
-                <td><strong>{s.mentee}</strong></td>
-                <td>{s.mentor}</td>
-                <td>{s.date}</td>
-                <td>{s.subject}</td>
-                <td><span className={`badge ${s.status==='Completed'?'badge-green':s.status==='Upcoming'?'badge-blue':'badge-orange'}`}>{s.status}</span></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
-// Manage Mentors
-function ManageMentors() {
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: '', email: '', company: '', domain: '', experience: '' });
-
-  return (
-    <div className="fade-in">
-      <div className="page-header">
-        <div className="section-header"><h2>Manage Mentors</h2><p>Create, view and manage all mentors</p></div>
-        <button className="btn-primary" onClick={() => setShowForm(!showForm)}>
-          {showForm ? 'Close' : 'Add Mentor'}
-        </button>
-      </div>
-
-      {showForm && (
-        <div className="card form-card fade-in">
-          <h3>Create New Mentor</h3>
-          <div className="form-row-2">
-            <div className="form-group"><label>Full Name</label><input placeholder="Dr. Priya Sharma" value={form.name} onChange={e=>setForm({...form,name:e.target.value})} /></div>
-            <div className="form-group"><label>Email</label><input type="email" placeholder="mentor@example.com" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} /></div>
-            <div className="form-group"><label>Company Name</label><input placeholder="Google, Microsoft, etc." value={form.company} onChange={e=>setForm({...form,company:e.target.value})} /></div>
-            <div className="form-group"><label>Domain / Specialization</label><input placeholder="AI, Web Dev, CyberSec..." value={form.domain} onChange={e=>setForm({...form,domain:e.target.value})} /></div>
-            <div className="form-group"><label>Years of Experience</label><input type="number" placeholder="5" value={form.experience} onChange={e=>setForm({...form,experience:e.target.value})} /></div>
-          </div>
-          <div className="form-actions">
-            <button className="btn-primary">Create Mentor</button>
-            <button className="btn-secondary" onClick={()=>setShowForm(false)}>Cancel</button>
-          </div>
-        </div>
-      )}
-
-      <div className="card">
-        <table className="data-table">
-          <thead><tr><th>Name</th><th>Email</th><th>Company</th><th>Domain</th><th>Mentees</th><th>Status</th><th>Actions</th></tr></thead>
-          <tbody>
-            {mockMentors.map(m => (
-              <tr key={m.id}>
-                <td><div className="cell-name"><div className="cell-av">{m.name[0]}</div><strong>{m.name}</strong></div></td>
-                <td style={{color:'var(--text-muted)'}}>{m.email}</td>
-                <td>{m.company}</td>
-                <td><span className="badge badge-blue">{m.domain}</span></td>
-                <td><strong>{m.mentees}</strong></td>
-                <td><span className={`badge ${m.status==='Active'?'badge-green':'badge-orange'}`}>{m.status}</span></td>
-                <td><div className="cell-actions"><button className="btn-edit">Edit</button><button className="btn-danger">Remove</button></div></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
-// Manage Mentees
-function ManageMentees() {
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: '', email: '', branch: '', batch: '' });
-
-  return (
-    <div className="fade-in">
-      <div className="page-header">
-        <div className="section-header"><h2>Manage Mentees</h2><p>Enroll and manage children in the program</p></div>
-        <button className="btn-primary" onClick={() => setShowForm(!showForm)}>
-          {showForm ? 'Close' : 'Enroll Mentee'}
-        </button>
-      </div>
-
-      {showForm && (
-        <div className="card form-card fade-in">
-          <h3>Enroll New Mentee</h3>
-          <div className="form-row-2">
-            <div className="form-group"><label>Full Name</label><input placeholder="Aarav Sharma" value={form.name} onChange={e=>setForm({...form,name:e.target.value})} /></div>
-            <div className="form-group"><label>Email / Guardian Email</label><input type="email" placeholder="guardian@example.com" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} /></div>
-            <div className="form-group"><label>Branch</label><input placeholder="CSE, ISE, ECE..." value={form.branch} onChange={e=>setForm({...form,branch:e.target.value})} /></div>
-            <div className="form-group"><label>FCI Batch</label><input placeholder="2024, 2025..." value={form.batch} onChange={e=>setForm({...form,batch:e.target.value})} /></div>
-          </div>
-          <div className="form-actions">
-            <button className="btn-primary">Enroll Mentee</button>
-            <button className="btn-secondary" onClick={()=>setShowForm(false)}>Cancel</button>
-          </div>
-        </div>
-      )}
-
-      <div className="card">
-        <table className="data-table">
-          <thead><tr><th>Name</th><th>Email</th><th>Branch</th><th>Batch</th><th>Assigned Mentor</th><th>Status</th><th>Actions</th></tr></thead>
-          <tbody>
-            {mockMentees.map(m => (
-              <tr key={m.id}>
-                <td><div className="cell-name"><div className="cell-av" style={{background:'var(--green)'}}>{m.name[0]}</div><strong>{m.name}</strong></div></td>
-                <td style={{color:'var(--text-muted)'}}>{m.email}</td>
-                <td>{m.branch}</td>
-                <td>{m.batch}</td>
-                <td>{m.mentor === 'Unassigned' ? <span className="badge badge-orange">Unassigned</span> : m.mentor}</td>
-                <td><span className={`badge ${m.status==='Active'?'badge-green':'badge-orange'}`}>{m.status}</span></td>
-                <td><div className="cell-actions"><button className="btn-edit">Edit</button><button className="btn-danger">Remove</button></div></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
-// Assign
-function AssignPairs() {
-  const [mentee, setMentee] = useState('');
-  const [mentor, setMentor] = useState('');
-  const [assigned, setAssigned] = useState([
-    { mentee: 'Aarav Sharma', mentor: 'Dr. Priya Sharma', subject: 'Mathematics', date: '2024-06-01' },
-    { mentee: 'Riya Patel', mentor: 'Mr. Rajan Patel', subject: 'English', date: '2024-06-02' },
-    { mentee: 'Sneha Nair', mentor: 'Ms. Anita Singh', subject: 'Science', date: '2024-06-03' },
-  ]);
-
-  const handleAssign = () => {
-    if (!mentee || !mentor) return;
-    setAssigned([...assigned, { mentee, mentor, subject: 'General', date: new Date().toISOString().split('T')[0] }]);
-    setMentee(''); setMentor('');
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [m, me, fb, inter, st] = await Promise.all([
+        mentorService.getAll(), menteeService.getAll(),
+        feedbackService.getAll(), interactionService.getAll(), statsService.admin()
+      ]);
+      setMentors(m.data.data); setMentees(me.data.data);
+      setFeedback(fb.data.data); setInteractions(inter.data.data);
+      setStats(st.data.data);
+    } catch { setError('Failed to load data.'); }
+    finally { setLoading(false); }
   };
 
-  return (
-    <div className="fade-in">
-      <div className="section-header"><h2>Assign Mentor-Mentee Pairs</h2><p>Create and manage mentor-mentee relationships</p></div>
-      <div className="assign-grid">
-        <div className="card">
-          <h3>New Assignment</h3>
-          <p style={{color:'var(--text-muted)',fontSize:14,marginBottom:24}}>Select a mentee and mentor to create a new pairing.</p>
-          <div className="form-group">
-            <label>Select Mentee</label>
-            <select value={mentee} onChange={e=>setMentee(e.target.value)}>
-              <option value="">Choose a mentee...</option>
-              {mockMentees.map(m => <option key={m.id}>{m.name}</option>)}
-            </select>
-          </div>
-          <div className="form-group">
-            <label>Select Mentor</label>
-            <select value={mentor} onChange={e=>setMentor(e.target.value)}>
-              <option value="">Choose a mentor...</option>
-              {mockMentors.map(m => <option key={m.id}>{m.name}</option>)}
-            </select>
-          </div>
-          <button className="btn-primary" onClick={handleAssign} style={{width:'100%',justifyContent:'center',marginTop:8}}>
-            Assign Pair
-          </button>
-        </div>
-        <div className="card">
-          <h3 style={{marginBottom:20}}>Current Assignments</h3>
-          <div className="assign-list">
-            {assigned.map((a, i) => (
-              <div key={i} className="assign-item">
-                <div className="assign-avatars">
-                  <div className="cell-av" style={{width:36,height:36,borderRadius:10,background:'var(--green)',color:'#fff',fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',fontSize:14}}>{a.mentee[0]}</div>
-                  <span className="assign-arrow">→</span>
-                  <div className="cell-av" style={{width:36,height:36,borderRadius:10,background:'var(--primary)',color:'#fff',fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',fontSize:14}}>{a.mentor[0]}</div>
-                </div>
-                <div className="assign-info">
-                  <div><strong>{a.mentee}</strong> with <strong>{a.mentor}</strong></div>
-                  <div style={{fontSize:12,color:'var(--text-muted)'}}>Since {a.date}</div>
-                </div>
-                <button className="btn-danger" style={{fontSize:12,padding:'6px 12px'}}>Unassign</button>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+  const msg = (m, err=false) => {
+    err ? setError(m) : setSuccess(m);
+    setTimeout(() => { setError(''); setSuccess(''); }, 4000);
+  };
 
-// Sessions
-function Sessions() {
-  return (
-    <div className="fade-in">
-      <div className="section-header"><h2>All Sessions</h2><p>View and manage all scheduled and completed sessions</p></div>
-      <div className="stat-cards" style={{gridTemplateColumns:'repeat(4,1fr)'}}>
-        {[
-          {label:'Total Sessions',value:'1,240',badge:'All Time'},
-          {label:'This Month',value:'310',badge:'Jun 2024'},
-          {label:'Upcoming',value:'48',badge:'Next 7 Days'},
-          {label:'Completed',value:'1,192',badge:'Historical'},
-        ].map((s,i) => (
-          <div key={i} className="card" style={{textAlign:'center',padding:'20px'}}>
-            <div style={{fontSize:28,fontWeight:800,color:'var(--primary)'}}>{s.value}</div>
-            <div style={{fontSize:13,color:'var(--text-muted)',marginTop:4}}>{s.label}</div>
-            <span className="badge badge-blue" style={{marginTop:8}}>{s.badge}</span>
-          </div>
-        ))}
-      </div>
-      <div className="card">
-        <table className="data-table">
-          <thead><tr><th>Mentee</th><th>Mentor</th><th>Date</th><th>Time</th><th>Subject</th><th>Status</th></tr></thead>
-          <tbody>
-            {[...mockSessions, ...mockSessions.map((s,i) => ({...s, id:s.id+10, date:'2024-06-1'+i, status:'Completed'}))].map(s => (
-              <tr key={s.id}>
-                <td><strong>{s.mentee}</strong></td>
-                <td>{s.mentor}</td>
-                <td>{s.date}</td>
-                <td>{s.time}</td>
-                <td><span className="badge badge-blue">{s.subject}</span></td>
-                <td><span className={`badge ${s.status==='Completed'?'badge-green':s.status==='Upcoming'?'badge-blue':'badge-orange'}`}>{s.status}</span></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
+  const handleCreateMentor = async e => {
+    e.preventDefault();
+    try { await mentorService.create(mentorForm); msg('Mentor created.'); setMentorForm({ name:'',email:'',password:'',expertise:'' }); setShowModal(null); fetchData(); }
+    catch(err) { msg(err.response?.data?.message||'Failed.',true); }
+  };
+  const handleCreateMentee = async e => {
+    e.preventDefault();
+    try { await menteeService.create(menteeForm); msg('Mentee created.'); setMenteeForm({ name:'',email:'',password:'',goal:'' }); setShowModal(null); fetchData(); }
+    catch(err) { msg(err.response?.data?.message||'Failed.',true); }
+  };
+  const handleAssign = async e => {
+    e.preventDefault();
+    try { await menteeService.assignMentor(assignForm.menteeId, assignForm.mentorId); msg('Mentor assigned.'); setAssignForm({ menteeId:'',mentorId:'' }); setShowModal(null); fetchData(); }
+    catch(err) { msg(err.response?.data?.message||'Failed.',true); }
+  };
+  const downloadPDF = async id => {
+    try {
+      const r = await api.get(`/feedback/${id}/pdf`,{responseType:'blob'});
+      const url=URL.createObjectURL(new Blob([r.data]));
+      const a=document.createElement('a'); a.href=url; a.download=`feedback_${id}.pdf`;
+      document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    } catch { msg('Failed to download PDF.',true); }
+  };
 
-// Feedback
-function Feedback() {
+  const initials = n => n ? n.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase() : '?';
+
+  const tabs = [
+    { id:'overview',      label:'Overview',    icon:'◈' },
+    { id:'mentors',       label:'Mentors',      icon:'◉' },
+    { id:'mentees',       label:'Mentees',      icon:'◎' },
+    { id:'interactions',  label:'Sessions',     icon:'◷' },
+    { id:'feedback',      label:'Feedback',     icon:'◐' },
+  ];
+
+  if (loading) return <div className="loading-spinner">Loading dashboard…</div>;
+
+  const pieData = stats ? [
+    { name:'Pending',   value: stats.pending },
+    { name:'Accepted',  value: stats.accepted },
+    { name:'Completed', value: stats.completed },
+    { name:'Rejected',  value: stats.rejected }
+  ].filter(d=>d.value>0) : [];
+
+  const barSummary = stats ? [
+    { label:'Mentors',   value: stats.totalMentors },
+    { label:'Mentees',   value: stats.totalMentees },
+    { label:'Sessions',  value: stats.totalSessions },
+    { label:'Completed', value: stats.completed },
+    { label:'Feedback',  value: stats.feedbackSubmitted },
+  ] : [];
+
   return (
-    <div className="fade-in">
-      <div className="section-header"><h2>Session Reports</h2><p>Review structured feedback and outcomes from sessions</p></div>
-      <div className="feedback-cards" style={{display:'flex', flexDirection:'column', gap:'16px'}}>
-        {mockFeedback.map(f => (
-          <div key={f.id} className="card feedback-card" style={{display:'block'}}>
-            <div style={{display:'flex', justifyContent:'space-between', marginBottom:'12px', borderBottom:'1px solid var(--border)', paddingBottom:'12px'}}>
-              <div>
-                <strong>{f.mentee}</strong> <span style={{color:'var(--text-muted)'}}>with</span> <strong>{f.mentor}</strong>
-              </div>
-              <div style={{fontSize:'13px', color:'var(--text-muted)'}}>
-                {f.date} · {f.mode} · {f.duration} hrs
-              </div>
-            </div>
-            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'20px'}}>
-              <div>
-                <div style={{fontSize:'12px', fontWeight:'700', color:'var(--text-muted)', textTransform:'uppercase', marginBottom:'4px'}}>Discussion Points</div>
-                <p style={{fontSize:'14px', lineHeight:'1.5'}}>{f.discussion}</p>
-              </div>
-              <div>
-                <div style={{fontSize:'12px', fontWeight:'700', color:'var(--text-muted)', textTransform:'uppercase', marginBottom:'4px'}}>Outcome / Progress</div>
-                <p style={{fontSize:'14px', lineHeight:'1.5'}}>{f.outcome}</p>
-              </div>
+    <div className="dashboard">
+      {/* ── Sidebar ── */}
+      <aside className="sidebar">
+        <div className="sidebar-top">
+          <div className="sidebar-user-card">
+            <div className="sidebar-avatar">{initials(user?.name)}</div>
+            <div>
+              <div className="sidebar-user-name">{user?.name}</div>
+              <div className="sidebar-user-role">Administrator</div>
             </div>
           </div>
-        ))}
-      </div>
+        </div>
+
+        <div className="sidebar-section-label">Navigation</div>
+        <nav className="sidebar-nav">
+          {tabs.map(t => (
+            <button key={t.id} className={`sidebar-nav-item ${activeTab===t.id?'active':''}`} onClick={()=>setActiveTab(t.id)}>
+              <span className="nav-icon">{t.icon}</span>
+              {t.label}
+            </button>
+          ))}
+        </nav>
+
+        <div className="sidebar-section-label">Actions</div>
+        <div className="sidebar-footer">
+          <button className="btn btn-primary" onClick={()=>setShowModal('mentor')}>+ Add Mentor</button>
+          <button className="btn btn-secondary" onClick={()=>setShowModal('mentee')}>+ Add Mentee</button>
+          <button className="btn btn-accent" onClick={()=>setShowModal('assign')}>Assign Mentor</button>
+        </div>
+      </aside>
+
+      {/* ── Main ── */}
+      <main className="dashboard-main">
+        {error && <div className="error-message">{error}</div>}
+        {success && <div className="success-message">{success}</div>}
+
+        {/* OVERVIEW */}
+        {activeTab==='overview' && stats && (
+          <>
+            <div className="page-header">
+              <h1>Program Overview</h1>
+              <p>Real-time statistics and program performance metrics</p>
+            </div>
+
+            <div className="grid-4" style={{marginBottom:22}}>
+              {[
+                {label:'Total Mentors',  value:stats.totalMentors,    cls:'teal'},
+                {label:'Total Mentees',  value:stats.totalMentees,    cls:'info'},
+                {label:'Total Sessions', value:stats.totalSessions,   cls:'accent'},
+                {label:'Completed',      value:stats.completed,        cls:'success'},
+                {label:'Pending',        value:stats.pending,          cls:'warning'},
+                {label:'Feedback Reports',value:stats.feedbackSubmitted,cls:'accent'},
+              ].map(s => (
+                <div className={`stat-card ${s.cls}`} key={s.label}>
+                  <div className={`stat-icon ${s.cls}`} style={{fontSize:22, fontFamily:'var(--font-display)', fontWeight:700}}>
+                    {s.value}
+                  </div>
+                  <div className="stat-info">
+                    <h3>{s.value}</h3>
+                    <p>{s.label}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="charts-row">
+              <div className="chart-card">
+                <div className="chart-card-header"><h3>Sessions by Month</h3></div>
+                <ResponsiveContainer width="100%" height={220}>
+                  <LineChart data={stats.monthlyData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f4f8" />
+                    <XAxis dataKey="month" tick={{fontSize:11,fill:'#8896a4'}} />
+                    <YAxis allowDecimals={false} tick={{fontSize:11,fill:'#8896a4'}} />
+                    <Tooltip contentStyle={{borderRadius:10,border:'1px solid #e4eaef',fontSize:12,boxShadow:'0 4px 16px rgba(0,0,0,.08)'}} />
+                    <Line type="monotone" dataKey="sessions" stroke="#0F4C5C" strokeWidth={2.5} dot={{r:4,fill:'#0F4C5C',strokeWidth:0}} activeDot={{r:6}} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="chart-card">
+                <div className="chart-card-header"><h3>Session Status</h3></div>
+                {pieData.length>0 ? (
+                  <ResponsiveContainer width="100%" height={220}>
+                    <PieChart>
+                      <Pie data={pieData} cx="50%" cy="50%" innerRadius={55} outerRadius={85} paddingAngle={3} dataKey="value">
+                        {pieData.map((_,i)=><Cell key={i} fill={PIE_COLORS[i%PIE_COLORS.length]} />)}
+                      </Pie>
+                      <Tooltip contentStyle={{borderRadius:10,fontSize:12}} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : <div className="empty-state" style={{padding:40}}><p>No session data yet</p></div>}
+              </div>
+            </div>
+
+            <div className="chart-card">
+              <div className="chart-card-header"><h3>Program Summary</h3></div>
+              <ResponsiveContainer width="100%" height={190}>
+                <BarChart data={barSummary} barSize={36}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f4f8" vertical={false} />
+                  <XAxis dataKey="label" tick={{fontSize:12,fill:'#8896a4'}} axisLine={false} tickLine={false} />
+                  <YAxis allowDecimals={false} tick={{fontSize:11,fill:'#8896a4'}} axisLine={false} tickLine={false} />
+                  <Tooltip contentStyle={{borderRadius:10,border:'1px solid #e4eaef',fontSize:12}} cursor={{fill:'rgba(15,76,92,.04)'}} />
+                  <Bar dataKey="value" radius={[6,6,0,0]}>
+                    {barSummary.map((_,i)=><Cell key={i} fill={['#0F4C5C','#2A9D8F','#3bbdad','#10b981','#f59e0b'][i]} />)}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </>
+        )}
+
+        {/* MENTORS */}
+        {activeTab==='mentors' && (
+          <>
+            <div className="page-header"><h1>Mentors</h1><p>{mentors.length} mentor{mentors.length!==1?'s':''} registered</p></div>
+            <div className="card card-with-table">
+              <div className="card-header"><h3>All Mentors</h3></div>
+              <div className="table-wrapper">
+                <table>
+                  <thead><tr><th>Name</th><th>Email</th><th>Expertise</th><th>Description</th><th>Joined</th></tr></thead>
+                  <tbody>
+                    {mentors.map(m=>(
+                      <tr key={m._id}>
+                        <td><strong style={{color:'var(--text-primary)'}}>{m.userId?.name}</strong></td>
+                        <td style={{color:'var(--text-muted)'}}>{m.userId?.email}</td>
+                        <td>{m.expertise ? <span className="badge badge-online">{m.expertise}</span> : '—'}</td>
+                        <td style={{maxWidth:200,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',color:'var(--text-muted)'}}>{m.profileDescription||'—'}</td>
+                        <td style={{color:'var(--text-muted)'}}>{new Date(m.createdAt).toLocaleDateString('en-IN')}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {mentors.length===0 && <div className="empty-state"><p>No mentors yet</p><span>Use "Add Mentor" to create the first mentor account.</span></div>}
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* MENTEES */}
+        {activeTab==='mentees' && (
+          <>
+            <div className="page-header"><h1>Mentees</h1><p>{mentees.length} mentee{mentees.length!==1?'s':''} enrolled</p></div>
+            <div className="card card-with-table">
+              <div className="card-header"><h3>All Mentees</h3></div>
+              <div className="table-wrapper">
+                <table>
+                  <thead><tr><th>Name</th><th>Email</th><th>Goal</th><th>Assigned Mentor</th><th>Joined</th></tr></thead>
+                  <tbody>
+                    {mentees.map(m=>(
+                      <tr key={m._id}>
+                        <td><strong style={{color:'var(--text-primary)'}}>{m.userId?.name}</strong></td>
+                        <td style={{color:'var(--text-muted)'}}>{m.userId?.email}</td>
+                        <td style={{color:'var(--text-muted)'}}>{m.goal||'—'}</td>
+                        <td>
+                          {m.assignedMentorId
+                            ? <span className="badge badge-accepted">{m.assignedMentorId?.userId?.name}</span>
+                            : <span className="badge badge-pending">Unassigned</span>}
+                        </td>
+                        <td style={{color:'var(--text-muted)'}}>{new Date(m.createdAt).toLocaleDateString('en-IN')}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {mentees.length===0 && <div className="empty-state"><p>No mentees yet</p></div>}
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* INTERACTIONS */}
+        {activeTab==='interactions' && (
+          <>
+            <div className="page-header"><h1>All Sessions</h1><p>Complete session history across all mentors and mentees</p></div>
+            <div className="card card-with-table">
+              <div className="card-header"><h3>Session Log</h3></div>
+              <div className="table-wrapper">
+                <table>
+                  <thead><tr><th>Mentee</th><th>Mentor</th><th>Topic</th><th>Date</th><th>Type</th><th>Status</th></tr></thead>
+                  <tbody>
+                    {interactions.map(i=>(
+                      <tr key={i._id}>
+                        <td><strong style={{color:'var(--text-primary)'}}>{i.menteeId?.userId?.name}</strong></td>
+                        <td>{i.mentorId?.userId?.name}</td>
+                        <td style={{maxWidth:180,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{i.topic}</td>
+                        <td style={{color:'var(--text-muted)',whiteSpace:'nowrap'}}>{new Date(i.dateTime).toLocaleDateString('en-IN')}</td>
+                        <td><span className={`badge badge-${i.sessionType}`}>{i.sessionType}</span></td>
+                        <td><span className={`badge badge-${i.status}`}>{i.status}</span></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {interactions.length===0 && <div className="empty-state"><p>No sessions yet</p></div>}
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* FEEDBACK */}
+        {activeTab==='feedback' && (
+          <>
+            <div className="page-header"><h1>Feedback Reports</h1><p>All submitted feedback — accessible only by admin</p></div>
+            <div className="card card-with-table">
+              <div className="card-header"><h3>Feedback Log</h3></div>
+              <div className="table-wrapper">
+                <table>
+                  <thead><tr><th>Mentee</th><th>Mentor</th><th>Topic</th><th>Hours</th><th>Date</th><th>Action</th></tr></thead>
+                  <tbody>
+                    {feedback.map(f=>(
+                      <tr key={f._id}>
+                        <td><strong style={{color:'var(--text-primary)'}}>{f.menteeName||f.menteeId?.userId?.name}</strong></td>
+                        <td>{f.mentorName||f.mentorId?.userId?.name}</td>
+                        <td style={{maxWidth:160,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{f.topic||f.interactionId?.topic}</td>
+                        <td><span className="feedback-hours-chip">{f.hoursOfInteraction}h</span></td>
+                        <td style={{color:'var(--text-muted)',whiteSpace:'nowrap'}}>{f.sessionDate?new Date(f.sessionDate).toLocaleDateString('en-IN'):'—'}</td>
+                        <td>
+                          {f.pdfFilePath
+                            ? <button className="btn btn-primary btn-sm" onClick={()=>downloadPDF(f._id)}>Download PDF</button>
+                            : <span style={{color:'var(--text-muted)',fontSize:12}}>Generating…</span>}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {feedback.length===0 && <div className="empty-state"><p>No feedback submitted yet</p></div>}
+              </div>
+            </div>
+          </>
+        )}
+      </main>
+
+      {/* ── Modals ── */}
+      {showModal==='mentor' && (
+        <div className="modal-overlay" onClick={()=>setShowModal(null)}>
+          <div className="modal" onClick={e=>e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Create Mentor Account</h2>
+              <button className="modal-close" onClick={()=>setShowModal(null)}>×</button>
+            </div>
+            <form onSubmit={handleCreateMentor}>
+              <div className="form-group"><label>Full Name</label><input type="text" value={mentorForm.name} onChange={e=>setMentorForm({...mentorForm,name:e.target.value})} placeholder="Mentor's full name" required /></div>
+              <div className="form-group"><label>Email Address</label><input type="email" value={mentorForm.email} onChange={e=>setMentorForm({...mentorForm,email:e.target.value})} placeholder="mentor@example.com" required /></div>
+              <div className="form-group"><label>Password</label><input type="password" value={mentorForm.password} onChange={e=>setMentorForm({...mentorForm,password:e.target.value})} placeholder="Minimum 6 characters" required /></div>
+              <div className="form-group"><label>Area of Expertise</label><input type="text" value={mentorForm.expertise} onChange={e=>setMentorForm({...mentorForm,expertise:e.target.value})} placeholder="e.g. Mathematics, Science, Arts" /></div>
+              <div className="modal-actions">
+                <button type="button" className="btn btn-secondary btn-sm" onClick={()=>setShowModal(null)}>Cancel</button>
+                <button type="submit" className="btn btn-primary btn-sm">Create Mentor</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showModal==='mentee' && (
+        <div className="modal-overlay" onClick={()=>setShowModal(null)}>
+          <div className="modal" onClick={e=>e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Create Mentee Account</h2>
+              <button className="modal-close" onClick={()=>setShowModal(null)}>×</button>
+            </div>
+            <form onSubmit={handleCreateMentee}>
+              <div className="form-group"><label>Full Name</label><input type="text" value={menteeForm.name} onChange={e=>setMenteeForm({...menteeForm,name:e.target.value})} placeholder="Student's full name" required /></div>
+              <div className="form-group"><label>Email Address</label><input type="email" value={menteeForm.email} onChange={e=>setMenteeForm({...menteeForm,email:e.target.value})} placeholder="student@example.com" required /></div>
+              <div className="form-group"><label>Password</label><input type="password" value={menteeForm.password} onChange={e=>setMenteeForm({...menteeForm,password:e.target.value})} placeholder="Minimum 6 characters" required /></div>
+              <div className="form-group"><label>Learning Goal</label><input type="text" value={menteeForm.goal} onChange={e=>setMenteeForm({...menteeForm,goal:e.target.value})} placeholder="e.g. Improve math skills" /></div>
+              <div className="modal-actions">
+                <button type="button" className="btn btn-secondary btn-sm" onClick={()=>setShowModal(null)}>Cancel</button>
+                <button type="submit" className="btn btn-primary btn-sm">Create Mentee</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showModal==='assign' && (
+        <div className="modal-overlay" onClick={()=>setShowModal(null)}>
+          <div className="modal" onClick={e=>e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Assign Mentor to Mentee</h2>
+              <button className="modal-close" onClick={()=>setShowModal(null)}>×</button>
+            </div>
+            <form onSubmit={handleAssign}>
+              <div className="form-group">
+                <label>Select Mentee</label>
+                <select value={assignForm.menteeId} onChange={e=>setAssignForm({...assignForm,menteeId:e.target.value})} required>
+                  <option value="">Choose a mentee…</option>
+                  {mentees.map(m=><option key={m._id} value={m._id}>{m.userId?.name}</option>)}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Select Mentor</label>
+                <select value={assignForm.mentorId} onChange={e=>setAssignForm({...assignForm,mentorId:e.target.value})} required>
+                  <option value="">Choose a mentor…</option>
+                  {mentors.map(m=><option key={m._id} value={m._id}>{m.userId?.name}{m.expertise?` — ${m.expertise}`:''}</option>)}
+                </select>
+              </div>
+              <div className="modal-actions">
+                <button type="button" className="btn btn-secondary btn-sm" onClick={()=>setShowModal(null)}>Cancel</button>
+                <button type="submit" className="btn btn-accent btn-sm">Confirm Assignment</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
-}
+};
 
-export default function AdminDashboard() {
-  return (
-    <DashboardLayout title="Admin Dashboard" navItems={navItems}>
-      <Routes>
-        <Route index element={<Navigate to="overview" />} />
-        <Route path="overview" element={<Overview />} />
-        <Route path="mentors" element={<ManageMentors />} />
-        <Route path="mentees" element={<ManageMentees />} />
-        <Route path="assign" element={<AssignPairs />} />
-        <Route path="sessions" element={<Sessions />} />
-        <Route path="feedback" element={<Feedback />} />
-      </Routes>
-    </DashboardLayout>
-  );
-}
+export default AdminDashboard;

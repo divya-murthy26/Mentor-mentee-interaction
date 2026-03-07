@@ -1,58 +1,98 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import './AuthPages.css';
 
-export default function LoginPage() {
-  const [role, setRole] = useState('admin');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+const LoginPage = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const [form, setForm] = useState({ email: '', password: '' });
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!email || !password) { setError('Please fill in all fields.'); return; }
-    // Mock login — replace with API call
-    login(role, email.split('@')[0], email);
-    if (role === 'admin') navigate('/admin');
-    else if (role === 'mentor') navigate('/mentor');
-    else navigate('/mentee');
+  const handleChange = e => { setForm({ ...form, [e.target.name]: e.target.value }); setError(''); };
+
+  const handleSubmit = async e => {
+    e.preventDefault(); setLoading(true);
+    try {
+      const user = await login(form.email, form.password);
+      navigate(`/${user.role}/dashboard`);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Invalid credentials. Please try again.');
+    } finally { setLoading(false); }
   };
 
   return (
-    <div className="auth-page-center">
-      <div className="auth-card fade-in">
-        <Link to="/" className="auth-logo-center">FundaChild</Link>
-        <h1>Welcome Back</h1>
-        <p className="auth-sub">Sign in to your account to continue.</p>
-        
+    <div className="auth-page">
+      {/* Left decorative panel */}
+      <div className="auth-panel-left">
+        <div className="auth-panel-deco deco-1" />
+        <div className="auth-panel-deco deco-2" />
+        <div className="auth-panel-deco deco-3" />
+
+        <div className="auth-panel-logo">
+          <div className="auth-panel-monogram">FI</div>
+          <div>
+            <div className="auth-panel-brand">Fund a Child India</div>
+            <div className="auth-panel-sub">Mentoring Management System</div>
+          </div>
+        </div>
+
+        <div className="auth-panel-content">
+          <h2 className="auth-panel-title">
+            Empowering the<br />
+            <span>Next Generation</span>
+          </h2>
+          <p className="auth-panel-desc">
+            A structured mentoring platform connecting passionate educators
+            with children who need guidance, support, and opportunity.
+          </p>
+        </div>
+
+        <div className="auth-panel-dots">
+          <span /><span /><span />
+        </div>
+      </div>
+
+      {/* Right form panel */}
+      <div className="auth-panel-right">
+        <div className="auth-form-wrap">
+          <div className="auth-form-header">
+            <span className="auth-form-eyebrow">Secure Access</span>
+            <h1 className="auth-form-title">Welcome Back</h1>
+            <p className="auth-form-subtitle">Sign in to your account to continue managing the mentoring program.</p>
+          </div>
+
+          {error && <div className="error-message">{error}</div>}
+
           <form onSubmit={handleSubmit}>
-            {error && <div className="form-error">{error}</div>}
-            <div className="form-group">
-              <label>Select Your Role</label>
-              <select className="form-select" value={role} onChange={e => setRole(e.target.value)}>
-                <option value="admin">Admin</option>
-                <option value="mentor">Mentor</option>
-                <option value="mentee">Mentee</option>
-              </select>
-            </div>
             <div className="form-group">
               <label>Email Address</label>
-              <input type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} />
+              <input type="email" name="email" value={form.email} onChange={handleChange} placeholder="your@email.com" required autoComplete="email" />
             </div>
             <div className="form-group">
               <label>Password</label>
-              <input type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} />
+              <input type="password" name="password" value={form.password} onChange={handleChange} placeholder="Enter your password" required autoComplete="current-password" />
             </div>
-            <div className="auth-forgot"><a href="#">Forgot password?</a></div>
-            <button type="submit" className="btn-primary auth-submit">Sign In</button>
+            <button type="submit" className="btn btn-primary auth-submit-btn" disabled={loading}>
+              {loading ? 'Signing in…' : 'Sign In →'}
+            </button>
           </form>
 
-          <p className="auth-switch">Don't have an account? <Link to="/signup">Sign up</Link></p>
-          <Link to="/" className="auth-back">Back to home</Link>
+          <div className="auth-info-card">
+            <p>
+              <strong>Note:</strong> Mentor and Mentee accounts are created by the program administrator.
+              Contact your admin if you need access to the platform.
+            </p>
+          </div>
+
+          <p className="auth-switch">
+            Are you an admin? <Link to="/signup">Create admin account</Link>
+          </p>
+        </div>
       </div>
     </div>
   );
-}
+};
+
+export default LoginPage;

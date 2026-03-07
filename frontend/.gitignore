@@ -4,19 +4,8 @@ node_modules/
 # environment variables
 .env
 
-# build folders
-dist/
+# build output
 build/
-
-# logs
-npm-debug.log
-yarn-error.log
-
-# OS files
-.DS_Store
-Thumbs.db
-
-# Python
-__pycache__/
-*.pyc
-venv/
+dist/
+.output/
+.next/

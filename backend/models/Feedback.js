@@ -1,23 +1,31 @@
 const mongoose = require('mongoose');
 
-const FeedbackSchema = new mongoose.Schema({
-  meetingId: {
+const feedbackSchema = new mongoose.Schema({
+  interactionId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Meeting',
+    ref: 'Interaction',
     required: true
   },
-  mentee: {
+  mentorId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    ref: 'Mentor',
     required: true
   },
-  rating: {
-    type: Number,
-    required: true,
-    min: 1,
-    max: 5
+  menteeId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Mentee',
+    required: true
   },
-  comments: String
-}, { timestamps: true });
+  mentorName: { type: String, default: '' },
+  menteeName: { type: String, default: '' },
+  sessionDate: { type: Date },
+  topic: { type: String, default: '' },
+  hoursOfInteraction: { type: Number, default: 1 },
+  pointsDiscussed: { type: String, default: '' },
+  description: { type: String, default: '' },
+  pdfFilePath: { type: String, default: null }
+}, {
+  timestamps: true
+});
 
-module.exports = mongoose.model('Feedback', FeedbackSchema);
+module.exports = mongoose.model('Feedback', feedbackSchema);

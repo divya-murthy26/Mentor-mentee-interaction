@@ -1,71 +1,82 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import './AuthPages.css';
 
-export default function SignupPage() {
-  const [role, setRole] = useState('mentor');
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirm, setConfirm] = useState('');
-  const [error, setError] = useState('');
-  const { login } = useAuth();
+const SignupPage = () => {
+  const { signup } = useAuth();
   const navigate = useNavigate();
+  const [form, setForm] = useState({ name: '', email: '', password: '' });
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleChange = e => { setForm({ ...form, [e.target.name]: e.target.value }); setError(''); };
+
+  const handleSubmit = async e => {
     e.preventDefault();
-    if (!name || !email || !password) { setError('Please fill in all fields.'); return; }
-    if (password !== confirm) { setError('Passwords do not match.'); return; }
-    // Mock signup — replace with API call
-    login(role, name, email);
-    if (role === 'admin') navigate('/admin');
-    else if (role === 'mentor') navigate('/mentor');
-    else navigate('/mentee');
+    if (form.password.length < 6) { setError('Password must be at least 6 characters.'); return; }
+    setLoading(true);
+    try {
+      const user = await signup({ ...form, role: 'admin' });
+      navigate(`/${user.role}/dashboard`);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Registration failed. Please try again.');
+    } finally { setLoading(false); }
   };
 
   return (
-    <div className="auth-page-center">
-      <div className="auth-card fade-in">
-        <Link to="/" className="auth-logo-center">FundaChild</Link>
-        <h1>Create Your Account</h1>
-        <p className="auth-sub">Join our mission to make a difference.</p>
-        
+    <div className="auth-page">
+      <div className="auth-panel-left">
+        <div className="auth-panel-deco deco-1" />
+        <div className="auth-panel-deco deco-2" />
+        <div className="auth-panel-deco deco-3" />
+        <div className="auth-panel-logo">
+          <div className="auth-panel-monogram">FI</div>
+          <div>
+            <div className="auth-panel-brand">Fund a Child India</div>
+            <div className="auth-panel-sub">Mentoring Management System</div>
+          </div>
+        </div>
+        <div className="auth-panel-content">
+          <h2 className="auth-panel-title">Set Up Your<br /><span>Admin Account</span></h2>
+          <p className="auth-panel-desc">As an administrator, you'll manage the entire mentoring program — from creating accounts to tracking outcomes.</p>
+        </div>
+        <div className="auth-panel-dots"><span /><span /><span /></div>
+      </div>
+
+      <div className="auth-panel-right">
+        <div className="auth-form-wrap">
+          <div className="auth-form-header">
+            <span className="auth-form-eyebrow">Admin Registration</span>
+            <h1 className="auth-form-title">Create Account</h1>
+            <p className="auth-form-subtitle">Register as a program administrator to get started.</p>
+          </div>
+
+          {error && <div className="error-message">{error}</div>}
+
           <form onSubmit={handleSubmit}>
-            {error && <div className="form-error">{error}</div>}
-            <div className="form-group">
-              <label>I want to sign up as a</label>
-              <select className="form-select" value={role} onChange={e => setRole(e.target.value)}>
-                <option value="mentor">Mentor</option>
-                <option value="mentee">Mentee</option>
-                <option value="admin">Admin</option>
-              </select>
-            </div>
             <div className="form-group">
               <label>Full Name</label>
-              <input type="text" placeholder="Priya Sharma" value={name} onChange={e => setName(e.target.value)} />
+              <input type="text" name="name" value={form.name} onChange={handleChange} placeholder="Administrator name" required />
             </div>
             <div className="form-group">
               <label>Email Address</label>
-              <input type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} />
+              <input type="email" name="email" value={form.email} onChange={handleChange} placeholder="admin@example.com" required />
             </div>
-            <div className="form-row-2">
-              <div className="form-group">
-                <label>Password</label>
-                <input type="password" placeholder="Min 8 chars" value={password} onChange={e => setPassword(e.target.value)} />
-              </div>
-              <div className="form-group">
-                <label>Confirm Password</label>
-                <input type="password" placeholder="Repeat password" value={confirm} onChange={e => setConfirm(e.target.value)} />
-              </div>
+            <div className="form-group">
+              <label>Password</label>
+              <input type="password" name="password" value={form.password} onChange={handleChange} placeholder="Minimum 6 characters" required />
             </div>
-            <button type="submit" className="btn-primary auth-submit">Create Account</button>
+            <button type="submit" className="btn btn-primary auth-submit-btn" disabled={loading}>
+              {loading ? 'Creating account…' : 'Create Admin Account →'}
+            </button>
           </form>
 
-          <p className="auth-terms">By signing up, you agree to our <a href="#">Terms</a> and <a href="#">Privacy Policy</a>.</p>
           <p className="auth-switch">Already have an account? <Link to="/login">Sign in</Link></p>
-          <Link to="/" className="auth-back">Back to home</Link>
+        </div>
       </div>
     </div>
   );
-}
+};
+
+export default SignupPage;

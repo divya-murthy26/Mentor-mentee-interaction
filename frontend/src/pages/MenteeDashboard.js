@@ -1,341 +1,547 @@
-import React, { useState } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
-import DashboardLayout from '../components/DashboardLayout';
-import './MenteeDashboard.css';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { interactionService, feedbackService, statsService, menteeService } from '../services/apiService';
+import api from '../services/api';
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell
+} from 'recharts';
+import './Dashboard.css';
 
-const navItems = [
-  { path: '/mentee/overview', label: 'Overview' },
-  { path: '/mentee/schedule', label: 'Schedule Interaction' },
-  { path: '/mentee/interactions', label: 'My Interactions' },
-  { path: '/mentee/feedback', label: 'Submit Feedback' },
-  { path: '/mentee/profile', label: 'My Profile' },
-];
+const PIE_COLORS = ['#f59e0b', '#0F4C5C', '#10b981'];
 
-const myInteractionHistory = [
-  { id: 1, mentor: 'Dr. Priya Sharma', topic: 'React - Hooks', date: '2024-06-10', time: '10:00 AM', status: 'Completed', feedbackStatus: 'Approved' },
-  { id: 2, mentor: 'Dr. Priya Sharma', topic: 'DSA - Trees', date: '2024-06-08', time: '10:00 AM', status: 'Completed', feedbackStatus: 'Pending Approval' },
-  { id: 3, mentor: 'Dr. Priya Sharma', topic: 'System Design', date: '2024-06-12', time: '10:00 AM', status: 'Upcoming', feedbackStatus: 'N/A' },
-  { id: 4, mentor: 'Dr. Priya Sharma', topic: 'Resume Review', date: '2024-06-05', time: '10:00 AM', status: 'Completed', feedbackStatus: 'Pending Submission' },
-];
+const MenteeDashboard = () => {
+  const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState('overview');
+  const [interactions, setInteractions] = useState([]);
+  const [feedback, setFeedback] = useState([]);
+  const [stats, setStats] = useState(null);
+  const [menteeProfile, setMenteeProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [feedbackModal, setFeedbackModal] = useState(null);
+  const [scheduleForm, setScheduleForm] = useState({
+    topic: '', dateTime: '', sessionType: 'online',
+    platform: 'Google Meet', meetingLink: '', location: ''
+  });
+  const [feedbackForm, setFeedbackForm] = useState({
+    hoursOfInteraction: 1, pointsDiscussed: '', description: ''
+  });
 
-function MenteeOverview() {
-  return (
-    <div className="fade-in">
-      <div className="mentee-welcome">
-        <div>
-          <h2>Hello, Aarav!</h2>
-          <p>Welcome to your mentorship dashboard. Stay consistent with your interactions.</p>
-        </div>
-        <div className="progress-ring">
-          <svg viewBox="0 0 100 100">
-            <circle cx="50" cy="50" r="40" fill="none" stroke="#e3f2fd" strokeWidth="8" />
-            <circle cx="50" cy="50" r="40" fill="none" stroke="#1e88c8" strokeWidth="8"
-              strokeDasharray={`${100 * 2.51} ${100 * 2.51}`} strokeLinecap="round" transform="rotate(-90 50 50)" />
-          </svg>
-          <div className="ring-label"><strong>2/2</strong><span>Goal Met</span></div>
-        </div>
-      </div>
+  useEffect(() => { fetchData(); }, []);
 
-      <div className="stat-cards">
-        {[
-          { label: 'Interactions', value: '2', change: 'This month' },
-          { label: 'Pending Feedback', value: '1', change: 'Action Required' },
-          { label: 'Pending Requests', value: '1', change: 'Awaiting response' },
-        ].map((s, i) => (
-          <div key={i} className="stat-card fade-in" style={{animationDelay:i*0.08+'s'}}>
-            <div className="value">{s.value}</div>
-            <div className="label">{s.label}</div>
-            <div className="change">{s.change}</div>
-          </div>
-        ))}
-      </div>
-
-      <div className="mentee-overview-grid">
-        <div className="card">
-          <div className="section-header"><h2>Monthly Goal</h2></div>
-          <div style={{background:'var(--primary-light)', padding:'20px', borderRadius:'12px', textAlign:'center'}}>
-            <h3 style={{color:'var(--primary-dark)', marginBottom:'8px'}}>2 Interactions Required</h3>
-            <p style={{fontSize:'14px', color:'var(--text-muted)'}}>FCI Rule: You must complete at least 2 interactions per month with your mentor.</p>
-            <div style={{marginTop:'16px', fontWeight:'bold', color:'var(--green)'}}>Current Status: On Track</div>
-          </div>
-        </div>
-
-        <div className="card">
-          <div className="section-header"><h2>Next Interaction</h2></div>
-          <div className="next-session">
-            <div className="next-session-icon">📅</div>
-            <div>
-              <h3>System Design Discussion</h3>
-              <p>With <strong>Dr. Priya Sharma</strong></p>
-              <p style={{marginTop:6}}>June 12, 2024 at 10:00 AM</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="card">
-          <div className="section-header"><h2>My Mentor</h2></div>
-          <div className="mentor-info-card">
-            <div className="mentor-big-av">P</div>
-            <h3>Dr. Priya Sharma</h3>
-            <p>Senior Data Scientist @ Google</p>
-            <div className="mentor-rating">48 Interactions</div>
-            <button className="btn-primary" style={{marginTop:16, width:'100%', justifyContent:'center'}}>Schedule Interaction</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ScheduleInteraction() {
-  const [subject, setSubject] = useState('');
-  const [date, setDate] = useState('');
-  const [time, setTime] = useState('');
-  const [note, setNote] = useState('');
-  const [submitted, setSubmitted] = useState(false);
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!subject || !date || !time) return;
-    setSubmitted(true);
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [inter, fb, st, me] = await Promise.all([
+        interactionService.getAll(), feedbackService.getAll(),
+        statsService.mentee(), menteeService.getMe()
+      ]);
+      setInteractions(inter.data.data); setFeedback(fb.data.data);
+      setStats(st.data.data); setMenteeProfile(me.data.data);
+    } catch { setError('Failed to load data.'); }
+    finally { setLoading(false); }
   };
 
+  const showMsg = (m, isErr = false) => {
+    isErr ? setError(m) : setSuccess(m);
+    setTimeout(() => { setError(''); setSuccess(''); }, 4000);
+  };
+
+  const handleSchedule = async e => {
+    e.preventDefault();
+    try {
+      await interactionService.create(scheduleForm);
+      showMsg('Session request sent! Awaiting mentor confirmation.');
+      setScheduleForm({ topic: '', dateTime: '', sessionType: 'online', platform: 'Google Meet', meetingLink: '', location: '' });
+      setActiveTab('sessions'); fetchData();
+    } catch (err) { showMsg(err.response?.data?.message || 'Failed to schedule session.', true); }
+  };
+
+  const handleFeedbackSubmit = async e => {
+    e.preventDefault();
+    if (!feedbackForm.pointsDiscussed) { showMsg('Please describe the points discussed.', true); return; }
+    try {
+      await feedbackService.submit({ interactionId: feedbackModal._id, ...feedbackForm });
+      showMsg('Feedback submitted and PDF report generated.');
+      setFeedbackModal(null);
+      setFeedbackForm({ hoursOfInteraction: 1, pointsDiscussed: '', description: '' });
+      setActiveTab('feedback'); fetchData();
+    } catch (err) { showMsg(err.response?.data?.message || 'Failed to submit feedback.', true); }
+  };
+
+  const handleDownloadPDF = async id => {
+    try {
+      const r = await api.get(`/feedback/${id}/pdf`, { responseType: 'blob' });
+      const url = URL.createObjectURL(new Blob([r.data]));
+      const a = document.createElement('a'); a.href = url;
+      a.download = `feedback_${id}.pdf`;
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+    } catch { showMsg('Failed to download PDF.', true); }
+  };
+
+  const pending   = interactions.filter(i => i.status === 'pending');
+  const accepted  = interactions.filter(i => i.status === 'accepted');
+  const completed = interactions.filter(i => i.status === 'completed');
+  const feedbackDone = new Set(feedback.map(f => f.interactionId?._id || f.interactionId));
+  const assignedMentor = menteeProfile?.assignedMentorId;
+  const initials = n => n ? n.split(' ').map(x => x[0]).join('').slice(0, 2).toUpperCase() : 'S';
+
+  const tabs = [
+    { id: 'overview',  label: 'Overview',          icon: '◈' },
+    { id: 'schedule',  label: 'Schedule Session',   icon: '◉' },
+    { id: 'sessions',  label: 'My Sessions',        icon: '◷', count: accepted.length },
+    { id: 'feedback',  label: 'My Feedback',        icon: '◐', count: feedback.length },
+  ];
+
+  if (loading) return <div className="loading-spinner">Loading dashboard…</div>;
+
+  const barData = stats ? [
+    { label: 'Total',     value: stats.total },
+    { label: 'Pending',   value: stats.pending },
+    { label: 'Confirmed', value: stats.accepted },
+    { label: 'Completed', value: stats.completed },
+    { label: 'Feedback',  value: stats.feedbackSubmitted },
+  ] : [];
+
+  const pieData = stats ? [
+    { name: 'Pending',   value: stats.pending },
+    { name: 'Confirmed', value: stats.accepted },
+    { name: 'Completed', value: stats.completed },
+  ].filter(d => d.value > 0) : [];
+
   return (
-    <div className="fade-in">
-      <div className="section-header"><h2>Schedule Interaction</h2><p>Request a meeting with your assigned mentor</p></div>
-      <div className="schedule-layout">
-        <div className="card" style={{flex:1}}>
-          {submitted ? (
-            <div className="success-state">
-              <h3>Request Sent!</h3>
-              <p>Your interaction request has been sent to Dr. Priya Sharma. You'll be notified once she responds.</p>
-              <button className="btn-primary" style={{marginTop:20}} onClick={() => setSubmitted(false)}>Schedule Another</button>
-            </div>
-          ) : (
-            <form onSubmit={handleSubmit}>
-              <div className="form-group">
-                <label>Topic (Tech Related)</label>
-                <select value={subject} onChange={e=>setSubject(e.target.value)}>
-                  <option value="">Select topic...</option>
-                  <option>Data Structures & Algorithms</option><option>Web Development (React/Node)</option><option>System Design</option>
-                  <option>Resume Review</option><option>Mock Interview</option><option>Career Guidance</option>
-                </select>
-              </div>
-              <div className="form-row-2">
-                <div className="form-group">
-                  <label>Preferred Date</label>
-                  <input type="date" value={date} onChange={e=>setDate(e.target.value)} />
-                </div>
-                <div className="form-group">
-                  <label>Preferred Time</label>
-                  <input type="time" value={time} onChange={e=>setTime(e.target.value)} />
-                </div>
-              </div>
-              <div className="form-group">
-                <label>Message to Mentor (Optional)</label>
-                <textarea rows={4} placeholder="Tell your mentor what you'd like help with..." value={note} onChange={e=>setNote(e.target.value)} />
-              </div>
-              <button type="submit" className="btn-primary" style={{width:'100%',justifyContent:'center'}}>
-                Send Request
-              </button>
-            </form>
-          )}
-        </div>
-        <div className="card schedule-info-panel">
-          <h3>My Mentor</h3>
-          <div className="mentor-mini">
-            <div className="cell-av" style={{width:52,height:52,borderRadius:14,fontSize:20}}>P</div>
+    <div className="dashboard">
+      {/* ── Sidebar ── */}
+      <aside className="sidebar">
+        <div className="sidebar-top">
+          <div className="sidebar-user-card">
+            <div className="sidebar-avatar">{initials(user?.name)}</div>
             <div>
-              <strong>Dr. Priya Sharma</strong>
-              <span>Data Science</span>
+              <div className="sidebar-user-name">{user?.name}</div>
+              <div className="sidebar-user-role">Mentee</div>
             </div>
-          </div>
-          <div style={{borderTop:'1px solid var(--border)', paddingTop:20,marginTop:20}}>
-            <h4 style={{marginBottom:12,fontSize:13,color:'var(--text-muted)',fontWeight:700,textTransform:'uppercase'}}>Available Slots</h4>
-            {[['Mon, Jun 12', '10:00 AM'], ['Wed, Jun 14', '2:00 PM'], ['Fri, Jun 16', '11:00 AM']].map(([d,t],i) => (
-              <div key={i} style={{display:'flex',justifyContent:'space-between',padding:'10px 0',borderBottom:'1px solid var(--border)',fontSize:14}}>
-                <span>{d}</span><span className="badge badge-green">{t}</span>
-              </div>
-            ))}
           </div>
         </div>
-      </div>
-    </div>
-  );
-}
 
-function MyInteractions() {
-  return (
-    <div className="fade-in">
-      <div className="section-header"><h2>My Interactions</h2><p>History of your mentorship meetings</p></div>
-      <div className="session-status-tabs">
-        {['All', 'Upcoming', 'Completed'].map(tab => (
-          <button key={tab} className={`tab-btn ${tab === 'All' ? 'active' : ''}`}>{tab}</button>
-        ))}
-      </div>
-      <div className="card">
-        <table className="data-table">
-          <thead><tr><th>Mentor</th><th>Topic</th><th>Date</th><th>Time</th><th>Status</th><th>Feedback Status</th></tr></thead>
-          <tbody>
-            {myInteractionHistory.map(s => (
-              <tr key={s.id}>
-                <td><div className="cell-name"><div className="cell-av">{s.mentor[0]}</div><strong>{s.mentor}</strong></div></td>
-                <td><span className="badge badge-blue">{s.topic}</span></td>
-                <td>{s.date}</td>
-                <td>{s.time}</td>
-                <td><span className={`badge ${s.status==='Completed'?'badge-green':'badge-orange'}`}>{s.status}</span></td>
-                <td>
-                  {s.status === 'Completed' ? (
-                    s.feedbackStatus === 'Pending Submission' ? <button className="btn-edit" style={{padding:'5px 12px',fontSize:12}}>Submit Now</button> :
-                    s.feedbackStatus === 'Approved' ? <span className="badge badge-green">Approved</span> :
-                    <span className="badge badge-orange">Pending Approval</span>
-                  ) : '—'}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
+        <div className="sidebar-section-label">Navigation</div>
+        <nav className="sidebar-nav">
+          {tabs.map(t => (
+            <button key={t.id} className={`sidebar-nav-item ${activeTab === t.id ? 'active' : ''}`} onClick={() => setActiveTab(t.id)}>
+              <span className="nav-icon">{t.icon}</span>
+              {t.label}
+              {t.count > 0 && <span className="nav-count">{t.count}</span>}
+            </button>
+          ))}
+        </nav>
 
-function SubmitFeedback() {
-  const [session, setSession] = useState('');
-  const [mode, setMode] = useState('Online');
-  const [duration, setDuration] = useState('');
-  const [topics, setTopics] = useState('');
-  const [learnings, setLearnings] = useState('');
-  const [challenges, setChallenges] = useState('');
-  const [goals, setGoals] = useState('');
-  const [submitted, setSubmitted] = useState(false);
-
-  return (
-    <div className="fade-in">
-      <div className="section-header"><h2>Submit Feedback</h2><p>Monthly interaction report (Required for FCI)</p></div>
-      <div className="feedback-layout">
-        <div className="card" style={{flex:1}}>
-          {submitted ? (
-            <div className="success-state">
-              <h3>Feedback Submitted!</h3>
-              <p>Your report has been sent to your mentor for approval. Once approved, it will be filed with the admin.</p>
-              <button className="btn-primary" style={{marginTop:20}} onClick={() => { setSubmitted(false); setTopics(''); }}>Submit Another Report</button>
+        {assignedMentor && (
+          <>
+            <div className="sidebar-section-label">My Mentor</div>
+            <div className="sidebar-widget">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                <div style={{
+                  width: 36, height: 36, borderRadius: 8,
+                  background: 'linear-gradient(135deg, #0F4C5C, #2A9D8F)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 13, fontWeight: 700, color: 'white', flexShrink: 0,
+                  fontFamily: 'var(--font-display)'
+                }}>
+                  {initials(assignedMentor.userId?.name)}
+                </div>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'white' }}>{assignedMentor.userId?.name}</div>
+                  {assignedMentor.expertise && (
+                    <div style={{ fontSize: 11, color: 'rgba(42,157,143,.9)', marginTop: 1 }}>{assignedMentor.expertise}</div>
+                  )}
+                </div>
+              </div>
+              {assignedMentor.profileDescription && (
+                <p style={{ fontSize: 11, color: 'rgba(255,255,255,.45)', lineHeight: 1.5 }}>
+                  {assignedMentor.profileDescription.slice(0, 80)}
+                  {assignedMentor.profileDescription.length > 80 ? '…' : ''}
+                </p>
+              )}
             </div>
-          ) : (
-            <form onSubmit={(e) => { e.preventDefault(); if(session) setSubmitted(true); }}>
-              <div className="form-row-2">
-                <div className="form-group">
-                  <label>Select Interaction</label>
-                  <select value={session} onChange={e=>setSession(e.target.value)}>
-                    <option value="">Choose an interaction...</option>
-                    <option>Dr. Priya Sharma — Jun 10</option>
-                    <option>Dr. Priya Sharma — Jun 8</option>
-                  </select>
+          </>
+        )}
+
+        {stats && (
+          <>
+            <div className="sidebar-section-label">Progress</div>
+            <div className="sidebar-widget">
+              <div className="sidebar-widget-label">Sessions</div>
+              {[['Total', stats.total], ['Completed', stats.completed], ['Feedback', stats.feedbackSubmitted]].map(([k, v]) => (
+                <div className="sidebar-stat-row" key={k}>
+                  <span>{k}</span><strong>{v}</strong>
                 </div>
-                <div className="form-group"><label>Mentor Name</label><input value="Dr. Priya Sharma" disabled style={{background:'#f5f7fa'}} /></div>
+              ))}
+            </div>
+          </>
+        )}
+      </aside>
+
+      {/* ── Main ── */}
+      <main className="dashboard-main">
+        {error && <div className="error-message">{error}</div>}
+        {success && <div className="success-message">{success}</div>}
+
+        {/* OVERVIEW */}
+        {activeTab === 'overview' && stats && (
+          <>
+            <div className="page-header">
+              <h1>My Dashboard</h1>
+              <p>Your mentoring journey overview, {user?.name}</p>
+            </div>
+
+            {!assignedMentor && (
+              <div className="warning-box" style={{ marginBottom: 22 }}>
+                <p>You have not been assigned a mentor yet. Please contact your program administrator to get started.</p>
               </div>
-              <div className="form-row-2">
-                <div className="form-group">
-                  <label>Mode of Communication</label>
-                  <select value={mode} onChange={e=>setMode(e.target.value)}>
-                    <option>Online (Video Call)</option>
-                    <option>Offline (In-Person)</option>
-                    <option>Phone Call</option>
-                  </select>
+            )}
+
+            <div className="grid-4" style={{ marginBottom: 22 }}>
+              {[
+                { label: 'Total Sessions',     value: stats.total,             cls: 'teal' },
+                { label: 'Pending',            value: stats.pending,           cls: 'warning' },
+                { label: 'Completed',          value: stats.completed,         cls: 'success' },
+                { label: 'Feedback Submitted', value: stats.feedbackSubmitted, cls: 'accent' },
+              ].map(s => (
+                <div className={`stat-card ${s.cls}`} key={s.label}>
+                  <div className={`stat-icon ${s.cls}`} style={{ fontSize: 20, fontWeight: 700, fontFamily: 'var(--font-display)' }}>{s.value}</div>
+                  <div className="stat-info"><h3>{s.value}</h3><p>{s.label}</p></div>
                 </div>
-                <div className="form-group">
-                  <label>Duration (Hours)</label>
-                  <input type="number" step="0.5" placeholder="1.0" value={duration} onChange={e=>setDuration(e.target.value)} />
+              ))}
+            </div>
+
+            <div className="charts-row">
+              <div className="chart-card">
+                <div className="chart-card-header"><h3>Session Breakdown</h3></div>
+                <ResponsiveContainer width="100%" height={220}>
+                  <BarChart data={barData} barSize={30}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f4f8" vertical={false} />
+                    <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#8896a4' }} axisLine={false} tickLine={false} />
+                    <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: '#8896a4' }} axisLine={false} tickLine={false} />
+                    <Tooltip contentStyle={{ borderRadius: 10, border: '1px solid #e4eaef', fontSize: 12, boxShadow: '0 4px 16px rgba(0,0,0,.08)' }} cursor={{ fill: 'rgba(15,76,92,.04)' }} />
+                    <Bar dataKey="value" fill="#2A9D8F" radius={[6, 6, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="chart-card">
+                <div className="chart-card-header"><h3>Status Overview</h3></div>
+                {pieData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={220}>
+                    <PieChart>
+                      <Pie data={pieData} cx="50%" cy="50%" innerRadius={55} outerRadius={85} paddingAngle={3} dataKey="value">
+                        {pieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                      </Pie>
+                      <Tooltip contentStyle={{ borderRadius: 10, fontSize: 12 }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="empty-state" style={{ padding: 50 }}>
+                    <div className="empty-state-icon">◈</div>
+                    <p>No session data yet</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* SCHEDULE */}
+        {activeTab === 'schedule' && (
+          <>
+            <div className="page-header">
+              <h1>Schedule a Session</h1>
+              <p>Request a new mentoring session with your assigned mentor</p>
+            </div>
+            {!assignedMentor ? (
+              <div className="warning-box">
+                <p>You have no assigned mentor yet. Please contact your program administrator to have a mentor assigned to you.</p>
+              </div>
+            ) : (
+              <div className="form-card" style={{ maxWidth: 600 }}>
+                <div className="form-card-title">New Session Request</div>
+
+                {/* Assigned mentor tag */}
+                <div className="assigned-mentor-tag">
+                  <div className="assigned-mentor-tag-avatar">{initials(assignedMentor.userId?.name)}</div>
+                  <div>
+                    <div className="assigned-mentor-tag-label">Assigned Mentor</div>
+                    <div className="assigned-mentor-tag-name">{assignedMentor.userId?.name}</div>
+                    {assignedMentor.expertise && <div className="assigned-mentor-tag-exp">{assignedMentor.expertise}</div>}
+                  </div>
                 </div>
+
+                <form onSubmit={handleSchedule}>
+                  <div className="form-group">
+                    <label>Session Topic</label>
+                    <input type="text" value={scheduleForm.topic} onChange={e => setScheduleForm({ ...scheduleForm, topic: e.target.value })} placeholder="What would you like to discuss?" required />
+                  </div>
+                  <div className="form-group">
+                    <label>Date and Time</label>
+                    <input type="datetime-local" value={scheduleForm.dateTime} onChange={e => setScheduleForm({ ...scheduleForm, dateTime: e.target.value })} required />
+                  </div>
+                  <div className="form-group">
+                    <label>Session Format</label>
+                    <select value={scheduleForm.sessionType} onChange={e => setScheduleForm({ ...scheduleForm, sessionType: e.target.value })}>
+                      <option value="online">Online</option>
+                      <option value="offline">Offline / In-person</option>
+                    </select>
+                  </div>
+                  {scheduleForm.sessionType === 'online' && (
+                    <>
+                      <div className="form-group">
+                        <label>Platform</label>
+                        <select value={scheduleForm.platform} onChange={e => setScheduleForm({ ...scheduleForm, platform: e.target.value })}>
+                          <option value="Google Meet">Google Meet</option>
+                          <option value="Zoom">Zoom</option>
+                        </select>
+                      </div>
+                      <div className="form-group">
+                        <label>Meeting Link</label>
+                        <input type="url" value={scheduleForm.meetingLink} onChange={e => setScheduleForm({ ...scheduleForm, meetingLink: e.target.value })} placeholder="https://meet.google.com/…" required />
+                      </div>
+                    </>
+                  )}
+                  {scheduleForm.sessionType === 'offline' && (
+                    <div className="form-group">
+                      <label>Location</label>
+                      <input type="text" value={scheduleForm.location} onChange={e => setScheduleForm({ ...scheduleForm, location: e.target.value })} placeholder="e.g. Community Hall, Room 5" required />
+                    </div>
+                  )}
+                  <button type="submit" className="btn btn-primary btn-lg" style={{ borderRadius: 'var(--r-full)', width: '100%', justifyContent: 'center', marginTop: 4 }}>
+                    Send Session Request →
+                  </button>
+                </form>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* SESSIONS */}
+        {activeTab === 'sessions' && (
+          <>
+            <div className="page-header">
+              <h1>My Sessions</h1>
+              <p>All your scheduled and completed mentoring sessions</p>
+            </div>
+            {interactions.length === 0 ? (
+              <div className="empty-state">
+                <div className="empty-state-icon">◷</div>
+                <p>No sessions yet</p>
+                <span>Schedule your first session to get started!</span>
+              </div>
+            ) : (
+              <>
+                {pending.length > 0 && (
+                  <div style={{ marginBottom: 28 }}>
+                    <div className="section-group-label">Awaiting Confirmation</div>
+                    <div className="grid-2">
+                      {pending.map(i => (
+                        <div key={i._id} className="session-card pending">
+                          <div className="session-card-header">
+                            <span className="session-card-title">{i.topic}</span>
+                            <span className="badge badge-pending">Pending</span>
+                          </div>
+                          <div className="session-meta">
+                            <span className="session-meta-item">
+                              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--warning)', display: 'inline-block' }} />
+                              {i.mentorId?.userId?.name}
+                            </span>
+                            <span className="session-meta-item">
+                              {new Date(i.dateTime).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
+                            </span>
+                            <span className={`badge badge-${i.sessionType}`}>{i.sessionType}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {accepted.length > 0 && (
+                  <div style={{ marginBottom: 28 }}>
+                    <div className="section-group-label">Confirmed Sessions</div>
+                    <div className="grid-2">
+                      {accepted.map(i => (
+                        <div key={i._id} className="session-card">
+                          <div className="session-card-header">
+                            <span className="session-card-title">{i.topic}</span>
+                            <span className="badge badge-accepted">Confirmed</span>
+                          </div>
+                          <div className="session-meta">
+                            <span className="session-meta-item">
+                              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--success)', display: 'inline-block' }} />
+                              {i.mentorId?.userId?.name}
+                            </span>
+                            <span className="session-meta-item">
+                              {new Date(i.dateTime).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
+                            </span>
+                            <span className={`badge badge-${i.sessionType}`}>{i.sessionType}</span>
+                          </div>
+                          {i.meetingLink && (
+                            <a href={i.meetingLink} target="_blank" rel="noopener noreferrer" className="meeting-link">
+                              Join Session →
+                            </a>
+                          )}
+                          {i.location && (
+                            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>{i.location}</p>
+                          )}
+                          <div className="session-actions">
+                            {!feedbackDone.has(i._id) ? (
+                              <button className="btn btn-accent btn-sm" onClick={() => setFeedbackModal(i)}>Submit Feedback</button>
+                            ) : (
+                              <span style={{ fontSize: 12, color: 'var(--success)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                <span>✓</span> Feedback submitted
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {completed.length > 0 && (
+                  <div>
+                    <div className="section-group-label">Completed Sessions</div>
+                    <div className="grid-2">
+                      {completed.map(i => (
+                        <div key={i._id} className="session-card completed">
+                          <div className="session-card-header">
+                            <span className="session-card-title">{i.topic}</span>
+                            <span className="badge badge-completed">Completed</span>
+                          </div>
+                          <div className="session-meta">
+                            <span className="session-meta-item">
+                              {i.mentorId?.userId?.name}
+                            </span>
+                            <span className="session-meta-item">
+                              {new Date(i.dateTime).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
+                            </span>
+                          </div>
+                          {!feedbackDone.has(i._id) && (
+                            <div className="session-actions">
+                              <button className="btn btn-accent btn-sm" onClick={() => setFeedbackModal(i)}>Submit Feedback</button>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </>
+        )}
+
+        {/* FEEDBACK */}
+        {activeTab === 'feedback' && (
+          <>
+            <div className="page-header">
+              <h1>My Feedback Reports</h1>
+              <p>Session reports you've submitted</p>
+            </div>
+            {feedback.length === 0 ? (
+              <div className="empty-state">
+                <div className="empty-state-icon">◐</div>
+                <p>No feedback submitted yet</p>
+                <span>Submit feedback after your sessions to see reports here</span>
+              </div>
+            ) : (
+              <div className="grid-2">
+                {feedback.map(f => (
+                  <div key={f._id} className="feedback-item">
+                    <div className="feedback-item-header">
+                      <div>
+                        <div className="feedback-item-name">{f.topic || f.interactionId?.topic || 'Session'}</div>
+                        <div className="feedback-item-topic">with {f.mentorName || f.mentorId?.userId?.name}</div>
+                      </div>
+                      <span className="feedback-hours-chip">{f.hoursOfInteraction}h</span>
+                    </div>
+                    <hr className="section-divider" />
+                    {f.pointsDiscussed && (
+                      <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 10 }}>
+                        <strong style={{ color: 'var(--ink)' }}>Points: </strong>
+                        {f.pointsDiscussed.slice(0, 130)}{f.pointsDiscussed.length > 130 ? '…' : ''}
+                      </p>
+                    )}
+                    <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginTop: 4 }}>
+                      <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                        {new Date(f.createdAt).toLocaleDateString('en-IN', { dateStyle: 'medium' })}
+                      </span>
+                      {f.pdfFilePath && (
+                        <button className="btn btn-primary btn-sm" onClick={() => handleDownloadPDF(f._id)}>
+                          Download PDF
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </main>
+
+      {/* ── Feedback Modal ── */}
+      {feedbackModal && (
+        <div className="modal-overlay" onClick={() => setFeedbackModal(null)}>
+          <div className="modal" style={{ maxWidth: 560 }} onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Submit Session Feedback</h2>
+              <button className="modal-close" onClick={() => setFeedbackModal(null)}>×</button>
+            </div>
+
+            <div className="info-box" style={{ marginBottom: 22 }}>
+              <p><strong>Mentor:</strong> {feedbackModal.mentorId?.userId?.name}</p>
+              <p style={{ marginTop: 4 }}><strong>Topic:</strong> {feedbackModal.topic}</p>
+              <p style={{ marginTop: 4 }}><strong>Date:</strong> {new Date(feedbackModal.dateTime).toLocaleDateString('en-IN', { dateStyle: 'long' })}</p>
+            </div>
+
+            <form onSubmit={handleFeedbackSubmit}>
+              <div className="form-group">
+                <label>Hours of Interaction</label>
+                <input
+                  type="number" min="0.5" max="8" step="0.5"
+                  value={feedbackForm.hoursOfInteraction}
+                  onChange={e => setFeedbackForm({ ...feedbackForm, hoursOfInteraction: parseFloat(e.target.value) })}
+                  required
+                />
               </div>
               <div className="form-group">
-                <label>Topics Discussed (Tech Related)</label>
-                <textarea rows={2} placeholder="e.g. React Hooks, API Integration, System Design..." value={topics} onChange={e=>setTopics(e.target.value)} />
+                <label>Points Discussed</label>
+                <textarea
+                  value={feedbackForm.pointsDiscussed}
+                  onChange={e => setFeedbackForm({ ...feedbackForm, pointsDiscussed: e.target.value })}
+                  placeholder="List the key topics and points covered in the session…"
+                  style={{ minHeight: 100 }}
+                  required
+                />
               </div>
               <div className="form-group">
-                <label>Key Learnings</label>
-                <textarea rows={2} placeholder="What did you learn from this interaction?" value={learnings} onChange={e=>setLearnings(e.target.value)} />
+                <label>Session Description</label>
+                <textarea
+                  value={feedbackForm.description}
+                  onChange={e => setFeedbackForm({ ...feedbackForm, description: e.target.value })}
+                  placeholder="Describe the session experience, outcomes, and any next steps…"
+                  style={{ minHeight: 100 }}
+                />
               </div>
-              <div className="form-group">
-                <label>Challenges Faced</label>
-                <textarea rows={2} placeholder="Any difficulties you are facing?" value={challenges} onChange={e=>setChallenges(e.target.value)} />
+              <div className="modal-actions">
+                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setFeedbackModal(null)}>Cancel</button>
+                <button type="submit" className="btn btn-primary btn-sm">Submit &amp; Generate PDF</button>
               </div>
-              <div className="form-group">
-                <label>Goals for Next Month</label>
-                <textarea rows={2} placeholder="What do you plan to achieve next?" value={goals} onChange={e=>setGoals(e.target.value)} />
-              </div>
-              <button type="submit" className="btn-primary" style={{width:'100%',justifyContent:'center'}}>Submit Feedback</button>
             </form>
-          )}
-        </div>
-        <div className="card feedback-tips">
-          <h3>Feedback Flow</h3>
-          <div className="tips-list">
-            {[
-              { title: '1. Submit', desc: 'Fill out the structured form after your interaction.' },
-              { title: '2. Mentor Approval', desc: 'Your mentor reviews and approves the details.' },
-              { title: '3. Admin Record', desc: 'Approved feedback is filed and downloadable as PDF.' },
-            ].map((t, i) => (
-              <div key={i} className="tip-item">
-                <div><strong>{t.title}</strong><p>{t.desc}</p></div>
-              </div>
-            ))}
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
-}
+};
 
-function MenteeProfile() {
-  return (
-    <div className="fade-in">
-      <div className="profile-layout">
-        <div className="card profile-card" style={{textAlign:'center',width:280}}>
-          <div className="profile-avatar" style={{background:'var(--green)'}}>A</div>
-          <h2>Aarav Sharma</h2>
-          <p style={{color:'var(--text-muted)',fontSize:14}}>aarav@example.com</p>
-          <div style={{display:'flex',gap:8,justifyContent:'center',margin:'16px 0',flexWrap:'wrap'}}>
-            <span className="badge badge-blue">CSE</span>
-            <span className="badge badge-green">Active</span>
-          </div>
-          <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12,marginTop:20,borderTop:'1px solid var(--border)',paddingTop:20}}>
-            {[{v:'8',l:'Interactions'},{v:'2/2',l:'Goal'},{v:'2025',l:'Batch'}].map((m,i) => (
-              <div key={i} style={{display:'flex',flexDirection:'column',gap:4}}>
-                <strong style={{fontSize:16,fontWeight:800,color:'var(--primary)'}}>{m.v}</strong>
-                <span style={{fontSize:11,color:'var(--text-muted)'}}>{m.l}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="card" style={{flex:1}}>
-          <h3 style={{marginBottom:24}}>My Information</h3>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
-            <div className="form-group"><label>Full Name</label><input defaultValue="Aarav Sharma" /></div>
-            <div className="form-group"><label>Email</label><input defaultValue="aarav@example.com" /></div>
-            <div className="form-group"><label>Branch</label><input defaultValue="CSE" /></div>
-            <div className="form-group"><label>FCI Batch</label><input defaultValue="2025" /></div>
-            <div className="form-group"><label>Location</label><input defaultValue="Bangalore" /></div>
-          </div>
-          <div className="form-group"><label>Learning Goals</label><textarea rows={3} defaultValue="I want to master Full Stack Development and get an internship at a top product company." /></div>
-          <button className="btn-primary">Save Changes</button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-export default function MenteeDashboard() {
-  return (
-    <DashboardLayout title="Mentee Dashboard" navItems={navItems}>
-      <Routes>
-        <Route index element={<Navigate to="overview" />} />
-        <Route path="overview" element={<MenteeOverview />} />
-        <Route path="schedule" element={<ScheduleInteraction />} />
-        <Route path="interactions" element={<MyInteractions />} />
-        <Route path="feedback" element={<SubmitFeedback />} />
-        <Route path="profile" element={<MenteeProfile />} />
-      </Routes>
-    </DashboardLayout>
-  );
-}
+export default MenteeDashboard;

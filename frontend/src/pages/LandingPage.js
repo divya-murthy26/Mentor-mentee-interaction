@@ -1,177 +1,138 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import './LandingPage.css';
 
-const Navbar = () => {
-  const [open, setOpen] = useState(false);
+const LandingPage = () => {
+  const { user } = useAuth();
+
   return (
-    <nav className="navbar">
-      <div className="nav-inner">
-        <div className="nav-logo">
-          <span className="logo-text">Fund<span>aChild</span></span>
+    <div className="landing">
+
+      {/* ── Hero ──────────────────────────────────────────── */}
+      <section className="hero">
+        <div className="hero-ring hero-ring-1" />
+        <div className="hero-ring hero-ring-2" />
+        <div className="hero-ring hero-ring-3" />
+        <div className="container hero-content">
+          <div className="hero-eyebrow">
+            <div className="hero-eyebrow-dot" />
+            <span>Mentoring Management System</span>
+          </div>
+
+          <h1 className="hero-title">
+            Structured Growth for
+            <span className="hero-title-accent">Every Child in India</span>
+          </h1>
+
+          <p className="hero-description">
+            Fund a Child India connects dedicated mentors with promising mentees through
+            a structured platform. Schedule sessions, track progress, and measure impact —
+            all in one place.
+          </p>
+
+          <div className="hero-cta">
+            {user ? (
+              <Link to={`/${user.role}/dashboard`} className="hero-btn-primary">
+                Go to Dashboard →
+              </Link>
+            ) : (
+              <>
+                <Link to="/login" className="hero-btn-primary">Sign In to Continue →</Link>
+                <Link to="/signup" className="hero-btn-secondary">Admin Registration</Link>
+              </>
+            )}
+          </div>
+
+          <div className="hero-stats">
+            <div className="hero-stat"><strong>500+</strong><span>Mentors</span></div>
+            <div className="hero-stat"><strong>2,000+</strong><span>Students</span></div>
+            <div className="hero-stat"><strong>15K+</strong><span>Sessions</span></div>
+          </div>
         </div>
-        <div className={`nav-links ${open ? 'open' : ''}`}>
-          <a href="#features">Features</a>
-          <a href="#how">How It Works</a>
-          <a href="#impact">Impact</a>
-          <Link to="/login" className="nav-login">Login</Link>
-          <Link to="/signup" className="nav-cta">Get Started</Link>
+      </section>
+
+      {/* ── Features ──────────────────────────────────────── */}
+      <section className="features-section">
+        <div className="container">
+          <span className="section-eyebrow">Platform Capabilities</span>
+          <h2 className="section-title">Everything You Need to Run<br />a Successful Mentoring Program</h2>
+          <div className="features-grid">
+            {[
+              { n: '01', title: 'Role-Based Access Control', desc: 'Admin, Mentor, and Mentee dashboards — each tailored with the right tools and permissions for the role.' },
+              { n: '02', title: 'Smart Session Scheduling', desc: 'Book online or offline sessions. Mentors accept or reject requests with full context before confirming.' },
+              { n: '03', title: 'Calendar Integration', desc: 'Accepted sessions are automatically added to both mentor and mentee Google Calendars.' },
+              { n: '04', title: 'PDF Feedback Reports', desc: 'Structured post-session feedback auto-generates a professional PDF report stored for admin review.' },
+              { n: '05', title: 'Statistical Dashboards', desc: 'Visual bar, line and pie charts give admins and users instant insight into program performance.' },
+              { n: '06', title: 'Admin-Controlled Accounts', desc: 'Only admins can create mentor and mentee accounts — ensuring data integrity and program quality.' },
+            ].map(f => (
+              <div className="feature-card" key={f.n}>
+                <span className="feature-number">{f.n}</span>
+                <h3>{f.title}</h3>
+                <p>{f.desc}</p>
+              </div>
+            ))}
+          </div>
         </div>
-        <button className="nav-toggle" onClick={() => setOpen(!open)}>☰</button>
-      </div>
-    </nav>
+      </section>
+
+      {/* ── Roles ─────────────────────────────────────────── */}
+      <section className="roles-section">
+        <div className="container">
+          <span className="section-eyebrow">Three Roles</span>
+          <h2 className="section-title">One Unified System</h2>
+          <div className="roles-grid">
+            <div className="role-card">
+              <span className="role-badge admin">Administrator</span>
+              <h3>Program Admin</h3>
+              <ul className="role-list">
+                <li>Create mentor &amp; mentee accounts</li>
+                <li>Assign mentors to mentees</li>
+                <li>View all sessions &amp; statistics</li>
+                <li>Access and download feedback PDFs</li>
+              </ul>
+            </div>
+            <div className="role-card featured">
+              <span className="role-badge mentor">Mentor</span>
+              <h3>Mentor</h3>
+              <ul className="role-list">
+                <li>Receive and manage session requests</li>
+                <li>Accept or decline interactions</li>
+                <li>View upcoming confirmed sessions</li>
+                <li>Access mentee feedback reports</li>
+              </ul>
+            </div>
+            <div className="role-card">
+              <span className="role-badge mentee-badge">Mentee</span>
+              <h3>Mentee</h3>
+              <ul className="role-list">
+                <li>Schedule sessions with assigned mentor</li>
+                <li>Choose online or offline format</li>
+                <li>Submit structured post-session feedback</li>
+                <li>Download PDF feedback reports</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Footer ────────────────────────────────────────── */}
+      <footer className="landing-footer">
+        <div className="container">
+          <div className="footer-inner">
+            <div className="footer-brand">
+              <div className="footer-monogram">FI</div>
+              <div>
+                <div className="footer-brand-name">Fund a Child India</div>
+                <div className="footer-brand-sub">Empowering children through mentorship</div>
+              </div>
+            </div>
+            <p className="footer-copy">© 2024 Fund a Child India. All rights reserved.</p>
+          </div>
+        </div>
+      </footer>
+    </div>
   );
 };
 
-const Hero = () => (
-  <section className="hero">
-    <div className="hero-content">
-      <div className="hero-badge">Empowering India's Future</div>
-      <h1>Connecting <span className="highlight">Mentors</span> with Children Who Need Guidance</h1>
-      <p>A comprehensive mentor-mentee management platform built for NGOs and foundations working to give every child in India an equal opportunity to succeed.</p>
-      <div className="hero-actions">
-        <Link to="/signup" className="btn-primary">Start Mentoring</Link>
-        <Link to="/login" className="btn-secondary">View Dashboard</Link>
-      </div>
-      <div className="hero-stats">
-        <div className="hstat"><strong>2,400+</strong><span>Children Enrolled</span></div>
-        <div className="hstat-divider" />
-        <div className="hstat"><strong>850+</strong><span>Active Mentors</span></div>
-        <div className="hstat-divider" />
-        <div className="hstat"><strong>12,000+</strong><span>Sessions Completed</span></div>
-      </div>
-    </div>
-  </section>
-);
-
-const Features = () => (
-  <section className="features-section" id="features">
-    <div className="section-label">Platform Features</div>
-    <h2 className="section-title">Everything you need to manage mentorship at scale</h2>
-    <p className="section-sub">Purpose-built tools for NGOs, administrators, mentors, and children.</p>
-    <div className="features-grid">
-      {[
-        { title: 'Smart Pairing', desc: 'Intelligent matching algorithm pairs mentors with mentees based on skills, availability, and learning goals.' },
-        { title: 'Session Scheduling', desc: 'Mentees request sessions, mentors accept or reschedule. Automated reminders keep everyone on track.' },
-        { title: 'Progress Analytics', desc: "Track each child's development journey with detailed analytics, session history, and milestone markers." },
-        { title: 'Feedback System', desc: 'Structured feedback forms after every session help mentors improve and administrators monitor quality.' },
-        { title: 'Role-Based Access', desc: 'Separate secure portals for Admins, Mentors, and Mentees with tailored features for each.' },
-        { title: 'Responsive Design', desc: 'Works seamlessly on desktops, tablets, and mobile phones for mentors in any location.' },
-      ].map((f, i) => (
-        <div key={i} className="feature-card fade-in" style={{ animationDelay: i * 0.07 + 's' }}>
-          <h3>{f.title}</h3>
-          <p>{f.desc}</p>
-        </div>
-      ))}
-    </div>
-  </section>
-);
-
-const HowItWorks = () => (
-  <section className="how-section" id="how">
-    <div className="how-inner">
-      <div className="section-label">Process</div>
-      <h2 className="section-title">How It Works</h2>
-      <p className="section-sub">A simple 4-step journey from registration to transformation.</p>
-      <div className="steps">
-        {[
-          { step: '01', title: 'Register & Verify', desc: 'Admins register mentors and enroll children. Profiles are verified and approved.' },
-          { step: '02', title: 'Smart Assignment', desc: 'Admin assigns mentors to mentees based on subject expertise and compatibility.' },
-          { step: '03', title: 'Schedule Sessions', desc: 'Mentees request sessions; mentors accept and conduct 1-on-1 guidance sessions.' },
-          { step: '04', title: 'Track & Improve', desc: 'Feedback is collected, progress is tracked, and reports are generated for stakeholders.' },
-        ].map((s, i) => (
-          <div key={i} className="step-item">
-            <div className="step-num">{s.step}</div>
-            <div className="step-connector" style={{display: i < 3 ? 'block' : 'none'}} />
-            <h3>{s.title}</h3>
-            <p>{s.desc}</p>
-          </div>
-        ))}
-      </div>
-    </div>
-  </section>
-);
-
-const Impact = () => (
-  <section className="impact-section" id="impact">
-    <div className="impact-inner">
-      <h2>Making a Real Difference Across India</h2>
-      <p>Our platform powers NGOs and foundations working in 18 states to provide quality mentorship to underprivileged children.</p>
-      <div className="impact-grid">
-        {[
-          { num: '2,400+', label: 'Children Enrolled' },
-          { num: '850+', label: 'Verified Mentors' },
-          { num: '18', label: 'States Covered' },
-          { num: '94%', label: 'Satisfaction Rate' },
-        ].map((item, i) => (
-          <div key={i} className="impact-card">
-            <div className="impact-num">{item.num}</div>
-            <div className="impact-label">{item.label}</div>
-          </div>
-        ))}
-      </div>
-    </div>
-  </section>
-);
-
-const CTA = () => (
-  <section className="cta-section">
-    <div className="cta-inner">
-      <h2>Ready to Transform a Child's Future?</h2>
-      <p>Join hundreds of mentors already making a difference. Register your NGO or sign up as a mentor today.</p>
-      <div className="cta-actions">
-        <Link to="/signup" className="btn-primary">Get Started Free</Link>
-        <Link to="/login" className="btn-secondary" style={{background:'rgba(255,255,255,0.1)', borderColor:'rgba(255,255,255,0.4)', color:'#fff'}}>Login to Dashboard</Link>
-      </div>
-    </div>
-  </section>
-);
-
-const Footer = () => (
-  <footer className="footer">
-    <div className="footer-inner">
-      <div className="footer-brand">
-        <span className="logo-text">Fund<span>aChild</span></span>
-        <p>Empowering India's children through structured mentorship and technology.</p>
-      </div>
-      <div className="footer-links">
-        <div>
-          <h4>Platform</h4>
-          <Link to="/login">Admin Login</Link>
-          <Link to="/login">Mentor Login</Link>
-          <Link to="/login">Mentee Login</Link>
-        </div>
-        <div>
-          <h4>Company</h4>
-          <a href="#features">About Us</a>
-          <a href="#impact">Our Impact</a>
-          <a href="#how">How It Works</a>
-        </div>
-        <div>
-          <h4>Contact</h4>
-          <a href="mailto:hello@fundachild.in">hello@fundachild.in</a>
-          <a href="#">+91 98765 43210</a>
-          <a href="#">New Delhi, India</a>
-        </div>
-      </div>
-    </div>
-    <div className="footer-bottom">
-      <span>© 2024 FundaChild India. All rights reserved.</span>
-      <span>A Project for India's Children</span>
-    </div>
-  </footer>
-);
-
-export default function LandingPage() {
-  return (
-    <div className="landing">
-      <Navbar />
-      <Hero />
-      <Features />
-      <HowItWorks />
-      <Impact />
-      <CTA />
-      <Footer />
-    </div>
-  );
-}
+export default LandingPage;

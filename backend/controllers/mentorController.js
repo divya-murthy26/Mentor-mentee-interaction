@@ -1,45 +1,73 @@
-const Meeting = require('../models/Meeting');
+const User = require('../models/User');
+const Mentor = require('../models/Mentor');
 
-exports.getRequests = async (req, res) => {
+const getMentors = async (req, res) => {
   try {
-    // Find meetings where mentor is current user
-    const meetings = await Meeting.find({ mentor: req.user.id }).populate('mentee', 'name');
-    res.json(meetings);
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
+    const mentors = await Mentor.find().populate('userId', 'name email role');
+    res.status(200).json({ success: true, data: mentors });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error fetching mentors.' });
   }
 };
 
-const updateStatus = async (req, res, status) => {
-  const { meetingId } = req.body;
+const createMentor = async (req, res) => {
   try {
-    let meeting = await Meeting.findById(meetingId);
-
-    if (!meeting) return res.status(404).json({ msg: 'Meeting not found' });
-
-    // Ensure this meeting belongs to this mentor
-    if (meeting.mentor.toString() !== req.user.id) {
-      return res.status(401).json({ msg: 'Not authorized' });
+    const { name, email, password, expertise, profileDescription } = req.body;
+    if (!name || !email || !password) {
+      return res.status(400).json({ success: false, message: 'Name, email and password are required.' });
     }
-
-    meeting.status = status;
-    await meeting.save();
-    res.json(meeting);
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ success: false, message: 'Email already in use.' });
+    }
+    const user = await User.create({ name, email, password, role: 'mentor' });
+    const mentor = await Mentor.create({
+      userId: user._id,
+      expertise: expertise || '',
+      profileDescription: profileDescription || ''
+    });
+    const populated = await Mentor.findById(mentor._id).populate('userId', 'name email role');
+    res.status(201).json({ success: true, data: populated });
+  } catch (error) {
+    console.error('Create mentor error:', error);
+    res.status(500).json({ success: false, message: 'Server error creating mentor.' });
   }
 };
 
-exports.acceptMeeting = async (req, res) => {
-  await updateStatus(req, res, 'accepted');
+const getMentorByUserId = async (req, res) => {
+  try {
+    const mentor = await Mentor.findOne({ userId: req.user.id }).populate('userId', 'name email');
+    if (!mentor) return res.status(404).json({ success: false, message: 'Mentor profile not found.' });
+    res.status(200).json({ success: true, data: mentor });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error.' });
+  }
 };
 
-exports.rejectMeeting = async (req, res) => {
-  await updateStatus(req, res, 'rejected');
+const updateMentorProfile = async (req, res) => {
+  try {
+    const { name, email, expertise, profileDescription } = req.body;
+    const mentor = await Mentor.findOne({ userId: req.user.id });
+    if (!mentor) return res.status(404).json({ success: false, message: 'Mentor not found.' });
+
+    // Update user fields
+    if (name || email) {
+      await User.findByIdAndUpdate(req.user.id, {
+        ...(name && { name }),
+        ...(email && { email })
+      });
+    }
+    // Update mentor fields
+    mentor.expertise = expertise !== undefined ? expertise : mentor.expertise;
+    mentor.profileDescription = profileDescription !== undefined ? profileDescription : mentor.profileDescription;
+    await mentor.save();
+
+    const updated = await Mentor.findById(mentor._id).populate('userId', 'name email role');
+    res.status(200).json({ success: true, data: updated });
+  } catch (error) {
+    console.error('Update mentor error:', error);
+    res.status(500).json({ success: false, message: 'Server error updating profile.' });
+  }
 };
 
-exports.completeMeeting = async (req, res) => {
-  await updateStatus(req, res, 'completed');
-};
+module.exports = { getMentors, createMentor, getMentorByUserId, updateMentorProfile };

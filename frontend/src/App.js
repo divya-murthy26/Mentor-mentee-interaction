@@ -1,7 +1,8 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './context/AuthContext';
-import './styles/global.css';
+import { AuthProvider } from './contexts/AuthContext';
+import Navbar from './components/common/Navbar';
+import ProtectedRoute from './components/common/ProtectedRoute';
 
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
@@ -10,44 +11,23 @@ import AdminDashboard from './pages/AdminDashboard';
 import MentorDashboard from './pages/MentorDashboard';
 import MenteeDashboard from './pages/MenteeDashboard';
 
-const ProtectedRoute = ({ children, allowedRole }) => {
-  const { user } = useAuth();
-  if (!user) return <Navigate to="/login" />;
-  if (allowedRole && user.role !== allowedRole) return <Navigate to="/login" />;
-  return children;
-};
-
-function AppRoutes() {
-  return (
-    <Routes>
-      <Route path="/" element={<LandingPage />} />
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/signup" element={<SignupPage />} />
-      <Route path="/admin/*" element={
-        <ProtectedRoute allowedRole="admin">
-          <AdminDashboard />
-        </ProtectedRoute>
-      } />
-      <Route path="/mentor/*" element={
-        <ProtectedRoute allowedRole="mentor">
-          <MentorDashboard />
-        </ProtectedRoute>
-      } />
-      <Route path="/mentee/*" element={
-        <ProtectedRoute allowedRole="mentee">
-          <MenteeDashboard />
-        </ProtectedRoute>
-      } />
-    </Routes>
-  );
-}
-
-export default function App() {
+function App() {
   return (
     <AuthProvider>
       <Router>
-        <AppRoutes />
+        <Navbar />
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignupPage />} />
+          <Route path="/admin/dashboard" element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/mentor/dashboard" element={<ProtectedRoute allowedRoles={['mentor']}><MentorDashboard /></ProtectedRoute>} />
+          <Route path="/mentee/dashboard" element={<ProtectedRoute allowedRoles={['mentee']}><MenteeDashboard /></ProtectedRoute>} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
       </Router>
     </AuthProvider>
   );
 }
+
+export default App;

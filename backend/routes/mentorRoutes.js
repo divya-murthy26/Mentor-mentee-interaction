@@ -1,15 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const mentorController = require('../controllers/mentorController');
-const auth = require('../middleware/authMiddleware');
-const checkRole = require('../middleware/roleMiddleware');
+const { getMentors, createMentor, getMentorByUserId, updateMentorProfile } = require('../controllers/mentorController');
+const { protect, authorize } = require('../middlewares/auth');
 
-// All routes here require Auth and Mentor role
-router.use(auth, checkRole(['mentor']));
-
-router.get('/requests', mentorController.getRequests);
-router.post('/accept', mentorController.acceptMeeting);
-router.post('/reject', mentorController.rejectMeeting);
-router.post('/complete', mentorController.completeMeeting);
+router.get('/', protect, getMentors);
+router.post('/', protect, authorize('admin'), createMentor);
+router.get('/me', protect, authorize('mentor'), getMentorByUserId);
+router.put('/me', protect, authorize('mentor'), updateMentorProfile);
 
 module.exports = router;

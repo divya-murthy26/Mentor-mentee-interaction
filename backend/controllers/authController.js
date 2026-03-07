@@ -1,47 +1,91 @@
-const User = require('../models/User');
-const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const User = require('../models/User');
+const Mentor = require('../models/Mentor');
+const Mentee = require('../models/Mentee');
 
-exports.login = async (req, res) => {
-  const { email, password } = req.body || {};
+const generateToken = (id) => {
+  return jwt.sign({ id }, process.env.JWT_SECRET, {
+    expiresIn: process.env.JWT_EXPIRES_IN || '7d'
+  });
+};
 
-  // 1. Validate input
-  if (!email || !password) {
-    return res.status(400).json({ msg: 'Please enter all fields' });
-  }
-
+// Public signup only allowed for admin role (or first-time setup)
+// Mentors and mentees are created only by admin
+const signup = async (req, res) => {
   try {
-    // 2. Check if user exists
-    let user = await User.findOne({ email });
-    if (!user) {
-      return res.status(400).json({ msg: 'User not found' });
+    const { name, email, password, role } = req.body;
+
+    if (!name || !email || !password) {
+      return res.status(400).json({ success: false, message: 'Please provide name, email, and password.' });
     }
 
-    // 3. Match password
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(400).json({ msg: 'Invalid password' });
+    // Block self-registration for mentor/mentee
+    const requestedRole = role || 'admin';
+    if (requestedRole === 'mentor' || requestedRole === 'mentee') {
+      return res.status(403).json({
+        success: false,
+        message: 'Mentors and mentees can only be created by an admin.'
+      });
     }
 
-    // 4. Return JWT
-    const payload = {
-      user: {
-        id: user.id,
-        role: user.role
-      }
-    };
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ success: false, message: 'Email already in use.' });
+    }
 
-    jwt.sign(
-      payload,
-      process.env.JWT_SECRET,
-      { expiresIn: '5d' },
-      (err, token) => {
-        if (err) throw err;
-        res.json({ token, role: user.role });
-      }
-    );
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
+    const user = await User.create({ name, email, password, role: 'admin' });
+    const token = generateToken(user._id);
+
+    res.status(201).json({
+      success: true,
+      token,
+      user: { id: user._id, name: user.name, email: user.email, role: user.role }
+    });
+  } catch (error) {
+    console.error('Signup error:', error);
+    res.status(500).json({ success: false, message: 'Server error during signup.' });
   }
 };
+
+const login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ success: false, message: 'Please provide email and password.' });
+    }
+
+    const user = await User.findOne({ email }).select('+password');
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'Invalid email or password.' });
+    }
+
+    const isPasswordCorrect = await user.comparePassword(password);
+    if (!isPasswordCorrect) {
+      return res.status(401).json({ success: false, message: 'Invalid email or password.' });
+    }
+
+    const token = generateToken(user._id);
+    res.status(200).json({
+      success: true,
+      token,
+      user: { id: user._id, name: user.name, email: user.email, role: user.role }
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ success: false, message: 'Server error during login.' });
+  }
+};
+
+const getMe = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    res.status(200).json({
+      success: true,
+      user: { id: user._id, name: user.name, email: user.email, role: user.role }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error.' });
+  }
+};
+
+module.exports = { signup, login, getMe };
