@@ -17,13 +17,16 @@ const app = express();
 
 const corsOptions = {
   origin: function (origin, callback) {
+    console.log('Incoming Request Origin:', origin); // Debug log to check what browser sends
+
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
 
     // Allow localhost, the main vercel app, and any Vercel preview URLs for this project
-    if (origin === "http://localhost:3000" || origin.includes("mentor-mentee-interaction") && origin.includes(".vercel.app")) {
+    if (origin.startsWith("http://localhost") || origin.endsWith(".vercel.app")) {
       return callback(null, true);
     }
+    console.error('Blocked by CORS:', origin);
     return callback(new Error('Not allowed by CORS'));
   },
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
