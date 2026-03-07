@@ -19,6 +19,7 @@ const MentorDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [profile, setProfile] = useState(null);
 
   useEffect(() => { fetchData(); }, []);
 
