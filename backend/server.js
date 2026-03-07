@@ -15,10 +15,16 @@ const app = express();
 
 /* ---------------- Middleware ---------------- */
 
-app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: [
+      "http://localhost:3000",
+      "https://mentor-mentee-interaction.vercel.app",
+      "https://mentor-mentee-interaction-6spiqvd47-divya-dns-projects.vercel.app"
+    ],
+    credentials: true
+  })
+);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
