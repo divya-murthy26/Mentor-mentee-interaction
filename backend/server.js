@@ -36,6 +36,10 @@ app.use('/api/interactions', interactionRoutes);
 app.use('/api/feedback', feedbackRoutes);
 app.use('/api/stats', statsRoutes);
 
+app.get("/", (req, res) => {
+  res.send("Mentor-Mentee Interaction API is running 🚀");
+});
+
 /* -------------------- Health Check -------------------- */
 
 app.get('/api/health', (req, res) => {
